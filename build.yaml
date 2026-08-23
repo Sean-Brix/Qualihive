@@ -1,0 +1,9 @@
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          # Store DateTime as ISO-8601 text rather than unix seconds — keeps
+          # timezone information and stays readable when inspecting the file.
+          store_date_time_values_as_text: true
+          named_parameters: true
