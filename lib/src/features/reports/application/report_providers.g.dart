@@ -51,7 +51,7 @@ final class ReportControllerProvider
   ReportController create() => ReportController();
 }
 
-String _$reportControllerHash() => r'78c10263f294e369978a7fab10c234201205a461';
+String _$reportControllerHash() => r'af22ffa5ee6adacea15faa37f3c917cb082d230e';
 
 /// Export and sharing actions — specification §9.
 ///

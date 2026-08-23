@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200"
+     height="500"
+     viewBox="0 0 1200 500">
+  <defs>
+    <filter id="internalFlowGlow" x="-60%" y="-50%" width="220%" height="200%">
+      <feGaussianBlur stdDeviation="2.0"/>
+    </filter>
+  </defs>
+
+  <!--
+    ASSET 17 — FLOW PATH 07: FILTER 3 → P4
+
+    MASTER CANVAS
+      viewBox: 0 0 1200 500
+
+    CLASSIFICATION
+      conceptual_internal_transfer
+
+    ENGINEERING CLARIFICATION
+      The current app machine-base illustration does not show a distinct,
+      exposed pipe segment between Filter 3 and Pump 4. This overlay therefore
+      visualizes the hidden/short process transition only. It must not be used
+      as a fabrication pipe route, hose length, or dimensional specification.
+
+    EXACT APP ANCHORS
+      Filter 3 media bottom-center: (750.0, 266.0)
+      Filter 3 housing bottom:      (750.0, 300.0)
+      P4 conceptual inlet:          (780.0, 335.0)
+
+    PATH
+      M 750 266 V 300 C 750 320 760 335 780 335
+
+    PATH LENGTH
+      straight section: 34.0px
+      curved section:   52.111px
+      total:            86.111px
+
+    ANIMATION
+      strokeDasharray = "9.0 8.0"
+      dash period = 17.0px
+      strokeDashoffset: 0 → -17.0
+      recommended duration: 500–850 ms
+      repeat only while active.
+
+    TYPICAL ACTIVE CONDITION
+      running && filter3Processing && pump4
+
+    VISUAL DISTINCTION
+      Hidden/internal transfers use a slightly thinner, lower-opacity stroke
+      than exposed-pipe routes.
+
+    STACK ORDER
+      machine_base.svg
+      filter3_processing_overlay.svg
+      flow_path_07_filter3_to_p4.svg
+      pump4 rotor/glow
+      status overlays
+  -->
+
+  <g id="flow_path_07_filter3_to_p4">
+    <path d="M 750 266 V 300 C 750 320 760 335 780 335"
+          fill="none"
+          stroke="#D98D1D"
+          stroke-width="7.4"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-opacity="0.18"
+          filter="url(#internalFlowGlow)"/>
+
+    <path id="flow_dashes"
+          d="M 750 266 V 300 C 750 320 760 335 780 335"
+          fill="none"
+          stroke="#E7A12A"
+          stroke-width="4.4"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-dasharray="9.0 8.0"
+          stroke-dashoffset="0"
+          opacity="0.92"/>
+
+    <path d="M 750 266 V 300 C 750 320 760 335 780 335"
+          fill="none"
+          stroke="#FFD975"
+          stroke-width="1.10"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-dasharray="9.0 8.0"
+          stroke-dashoffset="-1.2"
+          opacity="0.66"/>
+
+    <!-- Hidden registration markers -->
+    <circle cx="750.0" cy="266.0" r="2"
+            fill="#FFD975" opacity="0"/>
+    <circle cx="780.0" cy="335.0" r="2"
+            fill="#FFD975" opacity="0"/>
+  </g>
+</svg>

@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="500" viewBox="0 0 1200 500">
+  <defs>
+    <linearGradient id="honeyStage1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f3b43a" stop-opacity="0.34"/>
+      <stop offset="52%" stop-color="#d9921f" stop-opacity="0.48"/>
+      <stop offset="100%" stop-color="#b96d0b" stop-opacity="0.58"/>
+    </linearGradient>
+
+    <pattern id="coarseMesh" width="14" height="14" patternUnits="userSpaceOnUse">
+      <circle cx="4" cy="4" r="2.3" fill="#6c737c" fill-opacity="0.52"/>
+      <circle cx="11" cy="11" r="2.3" fill="#6c737c" fill-opacity="0.52"/>
+    </pattern>
+
+    <clipPath id="filter1Clip">
+      <rect x="374" y="158" width="72" height="108" rx="5"/>
+    </clipPath>
+
+    <filter id="softInnerGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2.2"/>
+    </filter>
+  </defs>
+
+  <!--
+    ASSET 04: Filter 1 processing/media overlay
+    Shared master canvas/viewBox: 1200 x 500
+
+    Native location:
+      Filter 1 inner area = x 374, y 158, width 72, height 108
+
+    Intended meaning:
+      Stage 1 / coarse filtration is actively processing honey.
+
+    Recommended Flutter controls:
+      - opacity 0.0 when inactive
+      - opacity 0.65-1.0 when active
+      - optional subtle vertical shimmer translation (2-4 px)
+      - optional pulse on the internal honey highlight
+      - do NOT move the whole filter housing
+
+    This asset should render ABOVE machine_base.svg.
+  -->
+
+  <g id="filter1_processing" clip-path="url(#filter1Clip)">
+    <!-- Honey process tint -->
+    <rect x="374" y="158" width="72" height="108" fill="url(#honeyStage1)"/>
+
+    <!-- Coarse filter media / perforation representation -->
+    <rect x="379" y="166" width="62" height="92" rx="4" fill="url(#coarseMesh)" opacity="0.72"/>
+
+    <!-- Flow highlight band -->
+    <path d="M378 188
+             C392 180, 410 181, 442 189
+             L442 207
+             C418 198, 398 198, 378 207 Z"
+          fill="#ffd66b"
+          fill-opacity="0.30"
+          filter="url(#softInnerGlow)"/>
+
+    <!-- Fine top sheen -->
+    <rect x="380" y="163" width="60" height="5" rx="2.5"
+          fill="#fff3c4" fill-opacity="0.34"/>
+
+    <!-- Lower amber concentration -->
+    <rect x="377" y="238" width="66" height="25" rx="4"
+          fill="#b86709" fill-opacity="0.18"/>
+  </g>
+</svg>

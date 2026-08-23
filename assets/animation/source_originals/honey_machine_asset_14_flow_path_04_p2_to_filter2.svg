@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200"
+     height="500"
+     viewBox="0 0 1200 500">
+  <defs>
+    <filter id="flowGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.1"/>
+    </filter>
+  </defs>
+
+  <!--
+    ASSET 14 — FLOW PATH 04: P2 → FILTER 2
+
+    MASTER CANVAS
+      viewBox: 0 0 1200 500
+      Must remain unchanged.
+
+    ROUTE CLASSIFICATION
+      exact_exposed_pipe
+
+    EXACT CENTERLINE FROM machine_base.svg
+      M 505 335 H 560 V 315 H 595
+
+    ROUTE ANCHORS
+      P2 outlet:              (505.0, 335.0)
+      first corner:           (560.0, 335.0)
+      second corner:          (560.0, 315.0)
+      Filter 2 inlet anchor:  (595.0, 315.0)
+
+    EXACT CENTERLINE LENGTH
+      horizontal 1 = 55 px
+      vertical up = 20 px
+      horizontal 2 = 35 px
+      total = 110.0px
+
+    PIPE REGISTRATION
+      base pipe outer stroke: 16 px
+      base pipe inner stroke: 8 px
+      honey main stroke:      4.8px
+      honey glow stroke:      8.0px
+
+    RECOMMENDED ANIMATION
+      strokeDasharray = "11.0 9.0"
+      dash period = 20.0px
+      strokeDashoffset: 0 → -20.0
+      duration: 650–1000 ms
+      repeat while active.
+
+    TYPICAL ACTIVE CONDITION
+      running && pump2 && allowFlowToFilter2
+
+    DIRECTION
+      P2 → Filter 2
+      path distance 0.0 → 110.0
+
+    STACK ORDER
+      machine_base.svg
+      flow_path_04_p2_to_filter2.svg
+      filter2_processing_overlay.svg
+      pump2 rotor/glow
+      status overlays
+  -->
+
+  <g id="flow_path_04_p2_to_filter2">
+    <!-- Soft amber glow -->
+    <path d="M 505 335 H 560 V 315 H 595"
+          fill="none"
+          stroke="#E49A23"
+          stroke-width="8.0"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-opacity="0.22"
+          filter="url(#flowGlow)"/>
+
+    <!-- Primary moving honey dashes -->
+    <path id="flow_dashes"
+          d="M 505 335 H 560 V 315 H 595"
+          fill="none"
+          stroke="#E8A62D"
+          stroke-width="4.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-dasharray="11.0 9.0"
+          stroke-dashoffset="0"
+          opacity="0.98"/>
+
+    <!-- Thin specular highlight -->
+    <path d="M 505 335 H 560 V 315 H 595"
+          fill="none"
+          stroke="#FFD974"
+          stroke-width="1.25"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-dasharray="11.0 9.0"
+          stroke-dashoffset="-1.5"
+          opacity="0.72"/>
+
+    <!-- Hidden registration markers -->
+    <circle cx="505.0" cy="335.0" r="2.2"
+            fill="#FFD974" opacity="0"/>
+    <circle cx="595.0" cy="315.0" r="2.2"
+            fill="#FFD974" opacity="0"/>
+  </g>
+</svg>

@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200"
+     height="500"
+     viewBox="0 0 1200 500">
+  <defs>
+    <radialGradient id="stopGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FF746B" stop-opacity="0.58"/>
+      <stop offset="45%" stop-color="#E54D45" stop-opacity="0.31"/>
+      <stop offset="100%" stop-color="#E54D45" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="pressedFace" cx="38%" cy="32%" r="72%">
+      <stop offset="0%" stop-color="#FF7A70"/>
+      <stop offset="46%" stop-color="#D94A42"/>
+      <stop offset="100%" stop-color="#8D2A25"/>
+    </radialGradient>
+
+    <filter id="stopSoftGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="4.2"/>
+    </filter>
+  </defs>
+
+  <!--
+    ASSET 20 — STOP BUTTON ACTIVE / PRESSED OVERLAY
+
+    MASTER CANVAS
+      viewBox: 0 0 1200 500
+      Must remain unchanged.
+
+    EXACT REGISTRATION
+      center: (1015.0, 232.0)
+      physical button radius in machine_base.svg: 13.0px
+
+    PURPOSE
+      Indicate STOP press acknowledgement, machine stop transition,
+      paused/aborted state, or a latched stopped state.
+
+    RECOMMENDED STATES
+
+      idle:
+        overlay hidden
+
+      pressed acknowledgement:
+        show face + rings
+        local scale 0.94 -> 1.00
+        duration 120-180 ms
+
+      stopped / latched:
+        keep active face visible briefly, then settle
+        optional glow pulse opacity 0.20 -> 0.55 -> 0.20
+        duration 850-1200 ms
+
+      emergency / fault stop:
+        DO NOT reuse this as the only warning indication.
+        Asset 23 warning/error overlay should take visual priority.
+
+    IMPORTANT
+      Do not move the center point.
+      Scale only the local button group around pivot
+      (1015.0, 232.0).
+
+    STACK ORDER
+      machine_base.svg
+      stop_button_active.svg
+      warning/error overlays
+  -->
+
+  <g id="stop_button_active" transform="translate(1015.0 232.0)">
+    <!-- diffuse red glow -->
+    <circle cx="0" cy="0" r="25.0"
+            fill="url(#stopGlow)"
+            opacity="0.90"
+            filter="url(#stopSoftGlow)"/>
+
+    <!-- outer active ring -->
+    <circle cx="0" cy="0" r="18.0"
+            fill="none"
+            stroke="#FF7067"
+            stroke-width="2.2"
+            stroke-opacity="0.60"/>
+
+    <!-- inner confirmation ring -->
+    <circle cx="0" cy="0" r="13.8"
+            fill="none"
+            stroke="#FFD0CC"
+            stroke-width="1.4"
+            stroke-opacity="0.76"/>
+
+    <!-- pressed button face -->
+    <circle cx="0" cy="0" r="12.2"
+            fill="url(#pressedFace)"
+            opacity="0.97"/>
+
+    <!-- subtle highlight -->
+    <ellipse cx="-3.8" cy="-4.2" rx="4.0" ry="2.5"
+             fill="#FFE9E7"
+             fill-opacity="0.46"/>
+  </g>
+</svg>

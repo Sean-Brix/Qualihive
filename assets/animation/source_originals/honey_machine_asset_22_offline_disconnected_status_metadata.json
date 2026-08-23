@@ -1,0 +1,68 @@
+{
+  "asset_id": 22,
+  "filename": "honey_machine_asset_22_offline_disconnected_status.svg",
+  "purpose": "Offline/disconnected connectivity status overlay",
+  "master_viewbox": [
+    0,
+    0,
+    1200,
+    500
+  ],
+  "slot_assignment": {
+    "control_panel_slot": "top_status_indicator",
+    "meaning": "connectivity",
+    "mutually_exclusive_with_asset": 21
+  },
+  "registration": {
+    "x": 1060.0,
+    "y": 135.0,
+    "width": 22.0,
+    "height": 12.0,
+    "corner_radius": 4.0,
+    "center": [
+      1071.0,
+      141.0
+    ]
+  },
+  "state_logic": {
+    "show_when": "!connected || telemetryStale",
+    "hide_when": "connected && !telemetryStale",
+    "recommended_priority": [
+      "warning/error (Asset 23)",
+      "offline/disconnected (Asset 22)",
+      "online/connected (Asset 21)"
+    ]
+  },
+  "animation": {
+    "slow_pulse_opacity": [
+      0.18,
+      0.5,
+      0.18
+    ],
+    "duration_ms_range": [
+      1200,
+      1800
+    ],
+    "repeat": true,
+    "connection_lost_transition": {
+      "optional_quick_pulses": 2,
+      "note": "After the transition, settle into the slow pulse; do not continuously strobe."
+    }
+  },
+  "semantics": {
+    "red_meaning_here": "communication unavailable / stale telemetry",
+    "process_faults": "Use Asset 23 warning/error overlay"
+  },
+  "flutter_notes": [
+    "Render in the same 1200x500 scene coordinate system as machine_base.svg.",
+    "Asset 21 and 22 occupy the exact same top indicator slot and must never be visible simultaneously.",
+    "Recommended logic: offlineVisible = !connected || telemetryStale.",
+    "Keep the red pulse slow to avoid visual fatigue.",
+    "If Asset 23 is active, it should visually take priority over this indicator."
+  ],
+  "stack_order": [
+    "machine_base.svg",
+    "offline_disconnected_status.svg",
+    "warning/error overlay"
+  ]
+}

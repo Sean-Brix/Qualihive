@@ -1,0 +1,130 @@
+{
+  "package": "Honey Filtration Machine Flutter Asset Pack",
+  "version": "1.0",
+  "master_viewBox": "0 0 1200 500",
+  "runtime_asset_root": "assets/honey_machine/",
+  "assets": [
+    {
+      "id": 1,
+      "file": "machine_base.svg",
+      "original_file": "honey_machine_asset_01_machine_base.svg"
+    },
+    {
+      "id": 2,
+      "file": "pump_rotor.svg",
+      "original_file": "honey_machine_asset_02_pump_rotor.svg"
+    },
+    {
+      "id": 3,
+      "file": "pump_glow.svg",
+      "original_file": "honey_machine_asset_03_pump_glow.svg"
+    },
+    {
+      "id": 4,
+      "file": "filter1_processing_overlay.svg",
+      "original_file": "honey_machine_asset_04_filter1_processing_overlay.svg"
+    },
+    {
+      "id": 5,
+      "file": "filter2_processing_overlay.svg",
+      "original_file": "honey_machine_asset_05_filter2_processing_overlay.svg"
+    },
+    {
+      "id": 6,
+      "file": "filter3_processing_overlay.svg",
+      "original_file": "honey_machine_asset_06_filter3_processing_overlay.svg"
+    },
+    {
+      "id": 7,
+      "file": "hopper_honey_fill.svg",
+      "original_file": "honey_machine_asset_07_hopper_honey_fill.svg"
+    },
+    {
+      "id": 8,
+      "file": "hopper_surface_wave.svg",
+      "original_file": "honey_machine_asset_08_hopper_surface_wave.svg"
+    },
+    {
+      "id": 9,
+      "file": "output_jar_honey_fill.svg",
+      "original_file": "honey_machine_asset_09_output_jar_honey_fill.svg"
+    },
+    {
+      "id": 10,
+      "file": "output_jar_surface_wave.svg",
+      "original_file": "honey_machine_asset_10_output_jar_surface_wave.svg"
+    },
+    {
+      "id": 11,
+      "file": "flow_path_01_hopper_to_p1.svg",
+      "original_file": "honey_machine_asset_11_flow_path_01_hopper_to_p1.svg"
+    },
+    {
+      "id": 12,
+      "file": "flow_path_02_p1_to_filter1.svg",
+      "original_file": "honey_machine_asset_12_flow_path_02_p1_to_filter1.svg"
+    },
+    {
+      "id": 13,
+      "file": "flow_path_03_filter1_to_p2.svg",
+      "original_file": "honey_machine_asset_13_flow_path_03_filter1_to_p2.svg"
+    },
+    {
+      "id": 14,
+      "file": "flow_path_04_p2_to_filter2.svg",
+      "original_file": "honey_machine_asset_14_flow_path_04_p2_to_filter2.svg"
+    },
+    {
+      "id": 15,
+      "file": "flow_path_05_filter2_to_p3.svg",
+      "original_file": "honey_machine_asset_15_flow_path_05_filter2_to_p3.svg"
+    },
+    {
+      "id": 16,
+      "file": "flow_path_06_p3_to_filter3.svg",
+      "original_file": "honey_machine_asset_16_flow_path_06_p3_to_filter3.svg"
+    },
+    {
+      "id": 17,
+      "file": "flow_path_07_filter3_to_p4.svg",
+      "original_file": "honey_machine_asset_17_flow_path_07_filter3_to_p4.svg"
+    },
+    {
+      "id": 18,
+      "file": "flow_path_08_p4_to_output_jar.svg",
+      "original_file": "honey_machine_asset_18_flow_path_08_p4_to_output_jar.svg"
+    },
+    {
+      "id": 19,
+      "file": "start_button_active.svg",
+      "original_file": "honey_machine_asset_19_start_button_active.svg"
+    },
+    {
+      "id": 20,
+      "file": "stop_button_active.svg",
+      "original_file": "honey_machine_asset_20_stop_button_active.svg"
+    },
+    {
+      "id": 21,
+      "file": "online_connected_status.svg",
+      "original_file": "honey_machine_asset_21_online_connected_status.svg"
+    },
+    {
+      "id": 22,
+      "file": "offline_disconnected_status.svg",
+      "original_file": "honey_machine_asset_22_offline_disconnected_status.svg"
+    },
+    {
+      "id": 23,
+      "file": "warning_error_overlay.svg",
+      "original_file": "honey_machine_asset_23_warning_error_overlay.svg"
+    }
+  ],
+  "important_rules": [
+    "All registered assets share the same 1200x500 logical coordinate system.",
+    "Do not independently resize or reposition registered overlays unless their metadata explicitly says they are reusable by translation.",
+    "pump_rotor.svg and pump_glow.svg are reusable for P1-P4.",
+    "Use metadata JSON files for fill bounds, pivots, animation timing, and state mapping.",
+    "Use warning_error_overlay.svg as the highest-priority core status overlay."
+  ]
+}

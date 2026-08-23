@@ -1,0 +1,76 @@
+{
+  "asset_id": 9,
+  "filename": "honey_machine_asset_09_output_jar_honey_fill.svg",
+  "purpose": "Dynamic honey fill inside the output jar, driven by load-cell net weight",
+  "master_viewbox": [
+    0,
+    0,
+    1200,
+    500
+  ],
+  "capacity_grams": 1000.0,
+  "geometry": {
+    "inner_clip_path_d": "M 978 318 H 1042 L 1037.5 362.5 Q 1036.5 373 1026 373 H 994 Q 983.5 373 982.5 362.5 Z",
+    "bounds": {
+      "left": 978.0,
+      "right": 1042.0,
+      "top": 318.0,
+      "bottom": 373.0,
+      "approx_width_px": 64.0,
+      "usable_fill_height_px": 55.0
+    },
+    "bottom_anchor_y": 373.0
+  },
+  "weight_mapping": {
+    "net_weight_formula": "max(0, rawLoadCellGrams - tareGrams)",
+    "jar_level_formula": "clamp(netWeightGrams / 1000, 0.0, 1.0)",
+    "visible_height_formula_px": "55.0 * jarLevel",
+    "reveal_top_y_formula": "373.0 - (55.0 * jarLevel)",
+    "examples": {
+      "0g": {
+        "level": 0.0,
+        "reveal_top_y": 373.0
+      },
+      "250g": {
+        "level": 0.25,
+        "reveal_top_y": 359.25
+      },
+      "500g": {
+        "level": 0.5,
+        "reveal_top_y": 345.5
+      },
+      "750g": {
+        "level": 0.75,
+        "reveal_top_y": 331.75
+      },
+      "1000g": {
+        "level": 1.0,
+        "reveal_top_y": 318.0
+      }
+    }
+  },
+  "tare_behavior": {
+    "required": true,
+    "reason": "The empty jar/container mass must not be visualized as collected honey."
+  },
+  "overcapacity_behavior": {
+    "visual_fill": "clamp at 100%",
+    "warning_condition": "netWeightGrams > 1000",
+    "recommendation": "Trigger a separate full/overweight warning overlay."
+  },
+  "flutter_notes": [
+    "Render at exactly the same logical size and transform as machine_base.svg.",
+    "Reveal from bottom to top using ClipRect or a custom clipper.",
+    "Do not vertically scale this SVG.",
+    "Clamp jarLevel to 0.0..1.0.",
+    "Animate only the clipping boundary for smooth changes.",
+    "Use net/tared load-cell weight, not raw weight.",
+    "Keep the numeric weight display independent from the visual animation smoothing."
+  ],
+  "stack_order": [
+    "machine_base.svg",
+    "output_jar_honey_fill.svg",
+    "future output_jar_surface_wave.svg",
+    "status/warning overlays"
+  ]
+}

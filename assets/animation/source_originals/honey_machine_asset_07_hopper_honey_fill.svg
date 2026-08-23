@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200"
+     height="500"
+     viewBox="0 0 1200 500">
+  <defs>
+    <linearGradient id="hopperHoneyGradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFD667" stop-opacity="0.92"/>
+      <stop offset="42%" stop-color="#F4B83E" stop-opacity="0.95"/>
+      <stop offset="74%" stop-color="#D99520" stop-opacity="0.97"/>
+      <stop offset="100%" stop-color="#B86D0E" stop-opacity="0.98"/>
+    </linearGradient>
+
+    <linearGradient id="hopperHoneyHighlight" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#FFF4C9" stop-opacity="0.00"/>
+      <stop offset="45%" stop-color="#FFF4C9" stop-opacity="0.18"/>
+      <stop offset="62%" stop-color="#FFF8DE" stop-opacity="0.29"/>
+      <stop offset="100%" stop-color="#FFF4C9" stop-opacity="0.00"/>
+    </linearGradient>
+
+    <!-- Exact fillable region inside the hopper shell. -->
+    <clipPath id="hopperInnerClip" clipPathUnits="userSpaceOnUse">
+      <polygon points="
+        98.0,118.0
+        242.0,118.0
+        222.5,198.0
+        117.5,198.0
+      "/>
+    </clipPath>
+  </defs>
+
+  <!--
+    ASSET 07 — HOPPER HONEY FILL
+
+    MASTER CANVAS
+      viewBox: 0 0 1200 500
+      Must remain unchanged for all machine overlays.
+
+    PRECISE FILL REGION
+      top-left:     (98.0, 118.0)
+      top-right:    (242.0, 118.0)
+      bottom-right: (222.5, 198.0)
+      bottom-left:  (117.5, 198.0)
+
+    LEVEL MAPPING
+      0.0 = completely empty
+      1.0 = completely full
+      usable vertical range = 80.0px
+      bottom anchor = y 198.0
+
+      Recommended Flutter reveal:
+        visibleHeight = 80.0 * hopperLevel
+        revealTop = 198.0 - visibleHeight
+
+      Clip/reveal from the BOTTOM upward.
+      Do not vertically scale the SVG itself because scaling would distort
+      the trapezoid and internal highlight.
+
+    STACK ORDER
+      machine_base.svg
+      hopper_honey_fill.svg
+      future hopper_surface/highlight overlay (optional)
+      status overlays
+  -->
+
+  <g id="hopper_honey_fill" clip-path="url(#hopperInnerClip)">
+    <!-- Full honey body. Flutter reveals only the required bottom portion. -->
+    <rect x="96.0"
+          y="116.0"
+          width="148.0"
+          height="84.0"
+          fill="url(#hopperHoneyGradient)"/>
+
+    <!-- Gentle vertical gloss; intentionally subtle so level changes remain readable. -->
+    <path d="
+      M 121.0 114.0
+      C 140.0 140.0,
+        146.0 170.0,
+        137.0 202.0
+      L 165.0 202.0
+      C 174.0 174.0,
+        170.0 136.0,
+        156.0 114.0
+      Z"
+      fill="url(#hopperHoneyHighlight)"/>
+
+    <!-- Slightly darker lower region gives depth without looking like a second liquid layer. -->
+    <rect x="112.5"
+          y="180.0"
+          width="115.0"
+          height="24"
+          fill="#9F5909"
+          fill-opacity="0.10"/>
+  </g>
+</svg>

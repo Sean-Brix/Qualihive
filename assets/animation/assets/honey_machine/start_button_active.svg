@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200"
+     height="500"
+     viewBox="0 0 1200 500">
+  <defs>
+    <radialGradient id="startGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#5EEA8B" stop-opacity="0.55"/>
+      <stop offset="45%" stop-color="#43D774" stop-opacity="0.30"/>
+      <stop offset="100%" stop-color="#43D774" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="pressedFace" cx="38%" cy="32%" r="72%">
+      <stop offset="0%" stop-color="#68E891"/>
+      <stop offset="46%" stop-color="#39B95F"/>
+      <stop offset="100%" stop-color="#247A3F"/>
+    </radialGradient>
+
+    <filter id="startSoftGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="4.2"/>
+    </filter>
+  </defs>
+
+  <!--
+    ASSET 19 — START BUTTON ACTIVE / PRESSED OVERLAY
+
+    MASTER CANVAS
+      viewBox: 0 0 1200 500
+      Must remain unchanged.
+
+    EXACT REGISTRATION
+      center: (966.0, 232.0)
+      physical button radius in machine_base.svg: 13.0px
+
+    PURPOSE
+      Visually indicate that the START control has been pressed / accepted
+      or that the machine is in a running state associated with START.
+
+    RECOMMENDED STATES
+
+      idle:
+        do not render this overlay
+
+      pressed acknowledgement:
+        show face + ring
+        scale 0.94 -> 1.00
+        duration 120-180 ms
+
+      running / latched active:
+        keep pressed face visible
+        pulse outer glow opacity 0.25 -> 0.70 -> 0.25
+        duration 900-1300 ms
+        repeat while machine is running
+
+    IMPORTANT
+      Do not move the center point.
+      Do not scale the full SVG scene.
+      If scale animation is used, scale only the local button group around
+      pivot (966.0, 232.0).
+
+    STACK ORDER
+      machine_base.svg
+      start_button_active.svg
+      higher-priority warning overlays
+  -->
+
+  <g id="start_button_active" transform="translate(966.0 232.0)">
+    <!-- diffuse pulse glow -->
+    <circle cx="0" cy="0" r="25.0"
+            fill="url(#startGlow)"
+            opacity="0.90"
+            filter="url(#startSoftGlow)"/>
+
+    <!-- outer active ring -->
+    <circle cx="0" cy="0" r="18.0"
+            fill="none"
+            stroke="#5CE986"
+            stroke-width="2.2"
+            stroke-opacity="0.58"/>
+
+    <!-- inner confirmation ring -->
+    <circle cx="0" cy="0" r="13.8"
+            fill="none"
+            stroke="#B7F8CB"
+            stroke-width="1.4"
+            stroke-opacity="0.72"/>
+
+    <!-- pressed button face exactly covers base button without spilling -->
+    <circle cx="0" cy="0" r="12.2"
+            fill="url(#pressedFace)"
+            opacity="0.96"/>
+
+    <!-- subtle top-left specular highlight -->
+    <ellipse cx="-3.8" cy="-4.2" rx="4.0" ry="2.5"
+             fill="#E7FFEE"
+             fill-opacity="0.48"/>
+  </g>
+</svg>

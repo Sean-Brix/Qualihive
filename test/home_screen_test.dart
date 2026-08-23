@@ -30,6 +30,13 @@ void main() {
   });
 
   Future<void> pumpHome(WidgetTester tester) async {
+    // Home is a long scroller, and a ListView only builds what fits. The
+    // viewport is made tall enough for the whole page so these tests can ask
+    // "is this on Home" without also testing scroll mechanics.
+    tester.view.physicalSize = const Size(800, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
     await tester.pumpWidget(
       ProviderScope(
         overrides: [

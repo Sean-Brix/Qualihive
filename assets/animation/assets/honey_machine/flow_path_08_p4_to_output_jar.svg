@@ -1,0 +1,152 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200"
+     height="500"
+     viewBox="0 0 1200 500">
+  <defs>
+    <filter id="flowGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="2.1"/>
+    </filter>
+    <filter id="entryGlow" x="-70%" y="-70%" width="240%" height="240%">
+      <feGaussianBlur stdDeviation="1.8"/>
+    </filter>
+  </defs>
+
+  <!--
+    ASSET 18 — FLOW PATH 08: P4 → OUTPUT JAR
+
+    MASTER CANVAS
+      viewBox: 0 0 1200 500
+      Must remain unchanged.
+
+    ROUTE CLASSIFICATION
+      hybrid_exact_plus_conceptual_entry
+
+    EXACT EXPOSED PIPE — directly from machine_base.svg
+      M 845 335 H 930 V 305 H 965
+
+      P4 outlet:         (845.0, 335.0)
+      corner 1:          (930.0, 335.0)
+      corner 2:          (930.0, 305.0)
+      pipe termination:  (965.0, 305.0)
+      exact length:      150.0px
+
+    CONCEPTUAL JAR ENTRY
+      M 965 305 C 972 305 979 309 982 318
+
+      starts at exact pipe termination (965.0, 305.0)
+      enters jar at (982.0, 318.0)
+      approximate entry length: 22.958px
+
+    WHY THE FINAL ENTRY IS CONCEPTUAL
+      The current app base illustration stops the exposed pipe just left of the
+      jar opening. The short final entry segment is therefore an app-process
+      visualization only. It is NOT a measured nozzle, hose, or fabrication
+      dimension.
+
+    TOTAL VISUAL PATH LENGTH
+      approximately 172.958px
+
+    EXPOSED PIPE ANIMATION
+      dash pattern: 11.0 9.0
+      dash period: 20.0px
+      dash offset: 0 → -20.0
+      recommended duration: 750–1150 ms
+
+    ENTRY-TAIL ANIMATION
+      dash pattern: 8.0 7.0
+      dash period: 15.0px
+      dash offset: 0 → -15.0
+      recommended duration: 450–700 ms
+
+    TYPICAL ACTIVE CONDITION
+      running && pump4 && outputEnabled
+
+    RECOMMENDED JAR COUPLING
+      When this route is active:
+        - animate P4 rotor
+        - animate this route
+        - update jar fill from net load-cell weight
+        - animate jar surface using Asset 10
+
+    STACK ORDER
+      machine_base.svg
+      flow_path_08_p4_to_output_jar.svg
+      output_jar_honey_fill.svg
+      output_jar_surface_wave.svg
+      pump4 rotor/glow
+      warning/status overlays
+  -->
+
+  <g id="flow_path_08_p4_to_output_jar">
+    <!-- Exact exposed-pipe glow -->
+    <path d="M 845 335 H 930 V 305 H 965"
+          fill="none"
+          stroke="#E49A23"
+          stroke-width="8.0"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-opacity="0.22"
+          filter="url(#flowGlow)"/>
+
+    <!-- Exact exposed-pipe moving honey -->
+    <path id="exposed_flow_dashes"
+          d="M 845 335 H 930 V 305 H 965"
+          fill="none"
+          stroke="#E8A62D"
+          stroke-width="4.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-dasharray="11.0 9.0"
+          stroke-dashoffset="0"
+          opacity="0.98"/>
+
+    <path d="M 845 335 H 930 V 305 H 965"
+          fill="none"
+          stroke="#FFD974"
+          stroke-width="1.25"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-dasharray="11.0 9.0"
+          stroke-dashoffset="-1.5"
+          opacity="0.72"/>
+
+    <!-- Conceptual short entry into jar -->
+    <path d="M 965 305 C 972 305 979 309 982 318"
+          fill="none"
+          stroke="#D98D1D"
+          stroke-width="7.0"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-opacity="0.17"
+          filter="url(#entryGlow)"/>
+
+    <path id="entry_flow_dashes"
+          d="M 965 305 C 972 305 979 309 982 318"
+          fill="none"
+          stroke="#E7A12A"
+          stroke-width="4.1"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-dasharray="8.0 7.0"
+          stroke-dashoffset="0"
+          opacity="0.90"/>
+
+    <path d="M 965 305 C 972 305 979 309 982 318"
+          fill="none"
+          stroke="#FFD975"
+          stroke-width="1.0"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-dasharray="8.0 7.0"
+          stroke-dashoffset="-1.1"
+          opacity="0.64"/>
+
+    <!-- Hidden registration markers -->
+    <circle cx="845.0" cy="335.0" r="2.2"
+            fill="#FFD974" opacity="0"/>
+    <circle cx="965.0" cy="305.0" r="2.2"
+            fill="#FFD974" opacity="0"/>
+    <circle cx="982.0" cy="318.0" r="2.2"
+            fill="#FFD974" opacity="0"/>
+  </g>
+</svg>

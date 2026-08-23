@@ -16,6 +16,8 @@ import '../data/transport/sensor_transport.dart';
 import '../data/transport/simulated_sensor_transport.dart';
 import '../domain/alert.dart';
 import '../domain/batch.dart';
+import '../domain/machine_state.dart';
+import '../domain/machine_visual_state.dart';
 import '../domain/quality_evaluation.dart';
 import '../domain/sensor_reading.dart';
 import 'batch_session.dart';
@@ -151,6 +153,34 @@ QualityEvaluation? liveEvaluation(Ref ref) {
   return QualityEvaluation.of(
     reading,
     standard: ref.watch(activeStandardProvider),
+  );
+}
+
+/// Everything the digital twin needs to draw the machine — specification §3.
+///
+/// The live reading is the primary source: it carries the machine's own view
+/// of what it is doing. The open batch is the fallback for firmware that
+/// reports a stage only when it changes, so the twin keeps showing the cycle
+/// between packets instead of dropping back to idle.
+@Riverpod(keepAlive: true)
+MachineVisualState machineVisual(Ref ref) {
+  final transport = ref.watch(transportStatusProvider).value;
+  final reading = ref.watch(liveReadingProvider).value;
+  final batch = ref.watch(activeBatchProvider).value;
+  final evaluation = ref.watch(liveEvaluationProvider);
+
+  final connected = transport?.isConnected ?? false;
+
+  return MachineVisualState.derive(
+    connected: connected,
+    status: reading?.machineStatus ??
+        batch?.machineStatus ??
+        (connected ? MachineStatus.connected : MachineStatus.disconnected),
+    stage: reading?.stage ?? batch?.stage ?? FiltrationStage.idle,
+    weightKg: reading?.weightKg,
+    flowLpm: reading?.flowLpm,
+    assessment: evaluation?.assessment,
+    lastReadingAt: reading?.recordedAt,
   );
 }
 

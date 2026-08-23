@@ -41,6 +41,7 @@ dependencies:
   go_router: ^17.5.0
   meta: ^1.19.0
   flutter_blue_plus: ^2.3.12
+  flutter_svg: ^2.0.10
   permission_handler: ^13.0.1
   intl: ^0.20.3
   fl_chart: ^1.2.0
@@ -79,6 +80,7 @@ flutter:
   assets:
     - assets/branding/
     - assets/illustrations/
+    - assets/honey_machine/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

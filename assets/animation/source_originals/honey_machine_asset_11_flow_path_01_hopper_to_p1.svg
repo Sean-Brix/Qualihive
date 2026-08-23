@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200"
+     height="500"
+     viewBox="0 0 1200 500">
+  <defs>
+    <filter id="flowGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.1"/>
+    </filter>
+  </defs>
+
+  <!--
+    ASSET 11 — FLOW PATH 01: HOPPER → P1
+
+    MASTER CANVAS
+      viewBox: 0 0 1200 500
+      Must remain unchanged.
+
+    EXACT CENTERLINE
+      M 170 273 H 190 V 335 H 270
+
+    ROUTE
+      start:   (170.0, 273.0)
+      corner1: (190.0, 273.0)
+      corner2: (190.0, 335.0)
+      end:     (270.0, 335.0)
+
+    TOTAL CENTERLINE LENGTH
+      162.0px
+
+    PIPE MATCH
+      machine_base inner pipe stroke = 8px
+      this flow overlay main stroke = 4.8px
+      therefore the amber flow remains visibly inside the pipe.
+
+    RECOMMENDED ANIMATION
+      strokeDasharray = "11.0 9.0"
+      dash period = 20.0px
+      animate strokeDashoffset from 0 to -20.0
+      repeat while this route is active.
+
+      Recommended duration:
+        700–1100 ms for normal flow.
+        Faster duration = visually faster flow.
+
+    ACTIVATION
+      Show/animate when extraction flow is active.
+      Typical condition:
+        pump1 == true AND running == true
+      Hide or fade out when inactive.
+
+    STACK ORDER
+      machine_base.svg
+      flow_path_01_hopper_to_p1.svg
+      pump rotors / active-state overlays
+      status overlays
+
+    NOTE
+      The SVG is a visual overlay only.
+      The metadata JSON contains the exact path and route data for a
+      Flutter CustomPainter implementation if preferred.
+  -->
+
+  <g id="flow_path_01_hopper_to_p1">
+    <!-- diffuse amber glow, kept inside/near the pipe -->
+    <path d="M 170 273 H 190 V 335 H 270"
+          fill="none"
+          stroke="#E49A23"
+          stroke-width="8.0"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-opacity="0.22"
+          filter="url(#flowGlow)"/>
+
+    <!-- animated honey dashes -->
+    <path id="flow_dashes"
+          d="M 170 273 H 190 V 335 H 270"
+          fill="none"
+          stroke="#E8A62D"
+          stroke-width="4.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-dasharray="11.0 9.0"
+          stroke-dashoffset="0"
+          opacity="0.98"/>
+
+    <!-- thin warm highlight -->
+    <path d="M 170 273 H 190 V 335 H 270"
+          fill="none"
+          stroke="#FFD974"
+          stroke-width="1.25"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-dasharray="11.0 9.0"
+          stroke-dashoffset="-1.5"
+          opacity="0.72"/>
+
+    <!-- start marker hidden by default in app; useful for precise registration -->
+    <circle cx="170.0" cy="273.0" r="2.2"
+            fill="#FFD974" opacity="0.0"/>
+
+    <!-- end marker hidden by default in app; useful for precise registration -->
+    <circle cx="270.0" cy="335.0" r="2.2"
+            fill="#FFD974" opacity="0.0"/>
+  </g>
+</svg>

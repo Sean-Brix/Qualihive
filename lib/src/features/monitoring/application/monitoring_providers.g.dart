@@ -611,7 +611,7 @@ final class LiveReadingProvider
   }
 }
 
-String _$liveReadingHash() => r'f01b09ce3a2f051688bd1c631ff1ec07b36438f1';
+String _$liveReadingHash() => r'1a37d9a07919b6b9e628202d05a09abb96413d2c';
 
 /// The live reading graded against the active standard.
 
@@ -664,6 +664,73 @@ final class LiveEvaluationProvider
 }
 
 String _$liveEvaluationHash() => r'5735ac275329919731645ed7f129541ad8f14b56';
+
+/// Everything the digital twin needs to draw the machine — specification §3.
+///
+/// The live reading is the primary source: it carries the machine's own view
+/// of what it is doing. The open batch is the fallback for firmware that
+/// reports a stage only when it changes, so the twin keeps showing the cycle
+/// between packets instead of dropping back to idle.
+
+@ProviderFor(machineVisual)
+final machineVisualProvider = MachineVisualProvider._();
+
+/// Everything the digital twin needs to draw the machine — specification §3.
+///
+/// The live reading is the primary source: it carries the machine's own view
+/// of what it is doing. The open batch is the fallback for firmware that
+/// reports a stage only when it changes, so the twin keeps showing the cycle
+/// between packets instead of dropping back to idle.
+
+final class MachineVisualProvider
+    extends
+        $FunctionalProvider<
+          MachineVisualState,
+          MachineVisualState,
+          MachineVisualState
+        >
+    with $Provider<MachineVisualState> {
+  /// Everything the digital twin needs to draw the machine — specification §3.
+  ///
+  /// The live reading is the primary source: it carries the machine's own view
+  /// of what it is doing. The open batch is the fallback for firmware that
+  /// reports a stage only when it changes, so the twin keeps showing the cycle
+  /// between packets instead of dropping back to idle.
+  MachineVisualProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'machineVisualProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$machineVisualHash();
+
+  @$internal
+  @override
+  $ProviderElement<MachineVisualState> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  MachineVisualState create(Ref ref) {
+    return machineVisual(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(MachineVisualState value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<MachineVisualState>(value),
+    );
+  }
+}
+
+String _$machineVisualHash() => r'74d8414182426972434ab97ea8377848cd186f25';
 
 /// Raises a disconnection alert when the link drops while a batch is open.
 ///

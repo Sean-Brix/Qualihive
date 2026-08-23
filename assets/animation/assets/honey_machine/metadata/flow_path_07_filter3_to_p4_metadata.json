@@ -1,0 +1,120 @@
+{
+  "asset_id": 17,
+  "filename": "honey_machine_asset_17_flow_path_07_filter3_to_p4.svg",
+  "route_id": "filter3_to_p4",
+  "route_sequence_index": 7,
+  "route_classification": "conceptual_internal_transfer",
+  "purpose": "Visualize the process transition from Filter 3 into Pump 4 where the current digital-twin base has no separately exposed connection.",
+  "engineering_disclaimer": "This is an app visualization path derived from the digital-twin layout. It is not a measured physical pipe route or fabrication dimension.",
+  "master_viewbox": [
+    0,
+    0,
+    1200,
+    500
+  ],
+  "anchors": {
+    "start_filter3_media_bottom_center": [
+      750.0,
+      266.0
+    ],
+    "filter3_outer_bottom_anchor": [
+      750.0,
+      300.0
+    ],
+    "end_p4_conceptual_inlet": [
+      780.0,
+      335.0
+    ]
+  },
+  "path": {
+    "svg_d": "M 750 266 V 300 C 750 320 760 335 780 335",
+    "straight_segment": {
+      "from": [
+        750.0,
+        266.0
+      ],
+      "to": [
+        750.0,
+        300.0
+      ],
+      "length_px": 34.0,
+      "distance_range_px": [
+        0.0,
+        34.0
+      ]
+    },
+    "cubic_segment": {
+      "p0": [
+        750.0,
+        300.0
+      ],
+      "p1": [
+        750.0,
+        320.0
+      ],
+      "p2": [
+        760.0,
+        335.0
+      ],
+      "p3": [
+        780.0,
+        335.0
+      ],
+      "approx_length_px": 52.111337,
+      "distance_range_px": [
+        34.0,
+        86.111337
+      ]
+    },
+    "approx_total_length_px": 86.111337
+  },
+  "visual": {
+    "main_stroke_width_px": 4.4,
+    "glow_stroke_width_px": 7.4,
+    "dash_array": [
+      9.0,
+      8.0
+    ],
+    "dash_period_px": 17.0,
+    "main_color": "#E7A12A",
+    "highlight_color": "#FFD975",
+    "glow_color": "#D98D1D",
+    "main_opacity": 0.92,
+    "reason_for_lower_emphasis": "Hidden/internal transfer rather than an exposed pipe."
+  },
+  "animation": {
+    "direction": "filter3_to_p4",
+    "stroke_dashoffset_from": 0.0,
+    "stroke_dashoffset_to": -17.0,
+    "duration_ms_range": [
+      500,
+      850
+    ],
+    "repeat": true,
+    "active_condition_example": "running && filter3Processing && pump4"
+  },
+  "flutter_notes": [
+    "Keep the shared 1200x500 logical coordinate space.",
+    "Do not independently offset this path.",
+    "For PathMetric particles, animate from path distance 0 to about 86.111px.",
+    "Use the lower-emphasis visual style reserved for hidden/internal transfers.",
+    "Fade out cleanly when inactive.",
+    "If a future mechanical drawing exposes the physical Filter 3 -> P4 connection, replace this conceptual path with the measured route."
+  ],
+  "consistency_reference": {
+    "matches_assets": [
+      13,
+      15
+    ],
+    "horizontal_translation_from_asset_15_px": 170.0,
+    "horizontal_translation_from_asset_13_px": 340.0,
+    "reason": "The three filter-to-next-pump transitions repeat at 170 px station spacing."
+  },
+  "stack_order": [
+    "machine_base.svg",
+    "filter3_processing_overlay.svg",
+    "flow_path_07_filter3_to_p4.svg",
+    "pump4 rotor/glow",
+    "status overlays"
+  ]
+}

@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200"
+     height="500"
+     viewBox="0 0 1200 500">
+  <defs>
+    <filter id="jarSurfaceGlow" x="-30%" y="-180%" width="160%" height="460%">
+      <feGaussianBlur stdDeviation="0.9"/>
+    </filter>
+  </defs>
+
+  <!--
+    ASSET 10 — OUTPUT JAR SURFACE / MENISCUS
+
+    MASTER CANVAS
+      viewBox: 0 0 1200 500
+      Must remain unchanged.
+
+    IMPORTANT
+      This SVG intentionally has NO internal jar clip.
+      In Flutter, keep the jar clip fixed and translate ONLY this wave asset.
+      That ensures the visible surface width always matches the curved jar.
+
+    FIXED EXTERNAL JAR CLIP PATH
+      M 978 318 H 1042 L 1037.5 362.5 Q 1036.5 373 1026 373 H 994 Q 983.5 373 982.5 362.5 Z
+
+    REFERENCE SURFACE CENTER
+      y = 373.0
+
+    WEIGHT / LEVEL MAPPING
+      netWeightGrams = max(0, rawLoadCellGrams - tareGrams)
+      jarLevel = clamp(netWeightGrams / 1000, 0.0, 1.0)
+
+      surfaceY = 373.0 - (55.0 * jarLevel)
+      translateY = surfaceY - 373.0
+                 = -(55.0 * jarLevel)
+
+      0 g    -> y 373.0
+      250 g  -> y 359.25
+      500 g  -> y 345.50
+      750 g  -> y 331.75
+      1000 g -> y 318.00
+
+    HORIZONTAL LOOP
+      Wave period = 18.0px
+      Animate translateX from 0 to -18.0px and repeat.
+      Recommended duration: 1800–2600 ms.
+      Keep movement subtle; this is viscous honey, not water.
+
+    VISIBILITY
+      Hide when jarLevel <= 0.01.
+      Optional fade-in from 0.01 to 0.05.
+
+    STACK ORDER
+      machine_base.svg
+      output_jar_honey_fill.svg
+      output_jar_surface_wave.svg
+      warning/status overlays
+  -->
+
+  <g id="output_jar_surface_wave">
+    <!-- Soft lower glow -->
+    <path d="M 960.0 373.0 Q 964.5 371.4, 969.0 373.0 Q 973.5 374.6, 978.0 373.0 Q 982.5 371.4, 987.0 373.0 Q 991.5 374.6, 996.0 373.0 Q 1000.5 371.4, 1005.0 373.0 Q 1009.5 374.6, 1014.0 373.0 Q 1018.5 371.4, 1023.0 373.0 Q 1027.5 374.6, 1032.0 373.0 Q 1036.5 371.4, 1041.0 373.0 Q 1045.5 374.6, 1050.0 373.0 Q 1054.5 371.4, 1059.0 373.0 L 1060.0 373.0"
+          fill="none"
+          stroke="#B86F10"
+          stroke-width="3.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          opacity="0.62"
+          filter="url(#jarSurfaceGlow)"/>
+
+    <!-- Main amber meniscus -->
+    <path d="M 960.0 373.0 Q 964.5 371.4, 969.0 373.0 Q 973.5 374.6, 978.0 373.0 Q 982.5 371.4, 987.0 373.0 Q 991.5 374.6, 996.0 373.0 Q 1000.5 371.4, 1005.0 373.0 Q 1009.5 374.6, 1014.0 373.0 Q 1018.5 371.4, 1023.0 373.0 Q 1027.5 374.6, 1032.0 373.0 Q 1036.5 371.4, 1041.0 373.0 Q 1045.5 374.6, 1050.0 373.0 Q 1054.5 371.4, 1059.0 373.0 L 1060.0 373.0"
+          fill="none"
+          stroke="#E8A62E"
+          stroke-width="2.2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          opacity="0.98"/>
+
+    <!-- Fine highlight -->
+    <path d="M 960.0 372.2 Q 964.5 370.6, 969.0 372.2 Q 973.5 373.8, 978.0 372.2 Q 982.5 370.6, 987.0 372.2 Q 991.5 373.8, 996.0 372.2 Q 1000.5 370.6, 1005.0 372.2 Q 1009.5 373.8, 1014.0 372.2 Q 1018.5 370.6, 1023.0 372.2 Q 1027.5 373.8, 1032.0 372.2 Q 1036.5 370.6, 1041.0 372.2 Q 1045.5 373.8, 1050.0 372.2 Q 1054.5 370.6, 1059.0 372.2 L 1060.0 372.2"
+          fill="none"
+          stroke="#FFF2B8"
+          stroke-width="0.9"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          opacity="0.76"/>
+  </g>
+</svg>

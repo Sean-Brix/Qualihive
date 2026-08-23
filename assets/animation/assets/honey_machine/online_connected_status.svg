@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200"
+     height="500"
+     viewBox="0 0 1200 500">
+  <defs>
+    <linearGradient id="onlineFace" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7BF0A0"/>
+      <stop offset="45%" stop-color="#35C96B"/>
+      <stop offset="100%" stop-color="#188A46"/>
+    </linearGradient>
+
+    <radialGradient id="onlineGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#65EA91" stop-opacity="0.52"/>
+      <stop offset="55%" stop-color="#39CB70" stop-opacity="0.24"/>
+      <stop offset="100%" stop-color="#39CB70" stop-opacity="0"/>
+    </radialGradient>
+
+    <filter id="onlineSoftGlow" x="-120%" y="-200%" width="340%" height="500%">
+      <feGaussianBlur stdDeviation="3.0"/>
+    </filter>
+  </defs>
+
+  <!--
+    ASSET 21 — ONLINE / CONNECTED STATUS OVERLAY
+
+    MASTER CANVAS
+      viewBox: 0 0 1200 500
+      Must remain unchanged.
+
+    EXACT REGISTRATION
+      indicator slot:
+        x = 1060.0
+        y = 135.0
+        width = 22.0
+        height = 12.0
+        corner radius = 4.0
+        center = (1071.0, 141.0)
+
+    SLOT ASSIGNMENT
+      Top control-panel indicator = connectivity status.
+
+    PURPOSE
+      Indicate that the app/device communication link is healthy and current.
+
+    RECOMMENDED VISIBILITY LOGIC
+      show when:
+        connected == true
+        AND telemetry is not stale
+
+      hide when:
+        connected == false
+        OR telemetry timeout is exceeded
+
+    RECOMMENDED ANIMATION
+      Connected steady:
+        face visible at 100% opacity
+        very subtle glow
+
+      Optional heartbeat:
+        glow opacity 0.20 -> 0.46 -> 0.20
+        duration 1600-2400 ms
+        repeat while healthy
+
+      Do not aggressively blink green; steady green communicates health better.
+
+    STALE DATA
+      A socket/link may technically remain connected while telemetry becomes stale.
+      Treat stale telemetry as degraded/offline in the application state rather than
+      leaving this online indicator active indefinitely.
+
+    STACK ORDER
+      machine_base.svg
+      online_connected_status.svg
+      warning/error overlay if present
+  -->
+
+  <g id="online_connected_status">
+    <!-- diffuse glow around connectivity slot -->
+    <rect x="1053.0"
+          y="129.0"
+          width="36.0"
+          height="24.0"
+          rx="10"
+          fill="url(#onlineGlow)"
+          opacity="0.88"
+          filter="url(#onlineSoftGlow)"/>
+
+    <!-- exact active face -->
+    <rect x="1060.0"
+          y="135.0"
+          width="22.0"
+          height="12.0"
+          rx="4.0"
+          fill="url(#onlineFace)"
+          stroke="#9AF3B7"
+          stroke-width="0.9"
+          opacity="0.98"/>
+
+    <!-- subtle glass highlight -->
+    <rect x="1062.2"
+          y="136.7"
+          width="17.6"
+          height="2.0"
+          rx="1"
+          fill="#E9FFF0"
+          fill-opacity="0.52"/>
+  </g>
+</svg>

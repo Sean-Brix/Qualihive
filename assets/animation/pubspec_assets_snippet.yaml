@@ -1,0 +1,13 @@
+# Copy this under the `flutter:` section of your pubspec.yaml.
+# Because the SVG files are directly in assets/honey_machine/, one folder entry is enough.
+#
+# Also add flutter_svg to dependencies.
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_svg: ^2.0.0
+
+flutter:
+  assets:
+    - assets/honey_machine/

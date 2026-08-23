@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200"
+     height="500"
+     viewBox="0 0 1200 500">
+  <defs>
+    <linearGradient id="jarHoneyGradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFD96F" stop-opacity="0.93"/>
+      <stop offset="38%" stop-color="#F7BE43" stop-opacity="0.96"/>
+      <stop offset="72%" stop-color="#E59A20" stop-opacity="0.97"/>
+      <stop offset="100%" stop-color="#BE6E0D" stop-opacity="0.98"/>
+    </linearGradient>
+
+    <linearGradient id="jarHoneyGloss" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#FFF7D2" stop-opacity="0.00"/>
+      <stop offset="42%" stop-color="#FFF7D2" stop-opacity="0.10"/>
+      <stop offset="58%" stop-color="#FFFBE8" stop-opacity="0.30"/>
+      <stop offset="70%" stop-color="#FFF7D2" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#FFF7D2" stop-opacity="0.00"/>
+    </linearGradient>
+
+    <!-- Precise inner-vessel clipping region. -->
+    <clipPath id="jarInnerClip" clipPathUnits="userSpaceOnUse">
+      <path d="M 978 318 H 1042 L 1037.5 362.5 Q 1036.5 373 1026 373 H 994 Q 983.5 373 982.5 362.5 Z"/>
+    </clipPath>
+  </defs>
+
+  <!--
+    ASSET 09 — OUTPUT JAR HONEY FILL
+
+    MASTER CANVAS
+      viewBox: 0 0 1200 500
+      Must remain unchanged.
+
+    INNER FILL REGION
+      top y:    318.0
+      bottom y: 373.0
+      usable vertical range: 55.0px
+      approximate top width: 64.0px
+      bottom anchor: y 373.0
+
+    WEIGHT / LEVEL MAPPING
+      capacity = 1000 g
+      jarLevel = clamp(netWeightGrams / 1000, 0.0, 1.0)
+
+      visibleHeight = 55.0 * jarLevel
+      revealTopY = 373.0 - visibleHeight
+
+      Examples:
+        250 g -> 25% -> y 359.25
+        500 g -> 50% -> y 345.50
+        750 g -> 75% -> y 331.75
+       1000 g -> 100% -> y 318.00
+
+    IMPORTANT
+      Reveal this full-size asset from the BOTTOM upward.
+      Do NOT scale the SVG vertically because that would distort the jar
+      curvature and the internal gloss.
+
+    TARE
+      Use netWeightGrams = max(0, rawLoadCellGrams - tareGrams).
+      The empty jar itself must not count as honey fill.
+
+    OVERCAPACITY
+      If netWeightGrams > 1000 g:
+        keep fill visually clamped at 100%;
+        show a separate warning state rather than drawing beyond the jar.
+
+    STACK ORDER
+      machine_base.svg
+      output_jar_honey_fill.svg
+      future jar_surface_wave.svg
+      warning/status overlays
+  -->
+
+  <g id="output_jar_honey_fill" clip-path="url(#jarInnerClip)">
+    <!-- Full honey body. Flutter reveals only the required lower portion. -->
+    <rect x="974.0"
+          y="315.0"
+          width="72.0"
+          height="61.0"
+          fill="url(#jarHoneyGradient)"/>
+
+    <!-- Vertical gloss for glass/liquid depth. -->
+    <rect x="999"
+          y="315.0"
+          width="20"
+          height="61.0"
+          rx="8"
+          fill="url(#jarHoneyGloss)"/>
+
+    <!-- Slight bottom concentration -->
+    <rect x="985"
+          y="361.0"
+          width="50"
+          height="15"
+          rx="7"
+          fill="#9E5608"
+          fill-opacity="0.11"/>
+  </g>
+</svg>

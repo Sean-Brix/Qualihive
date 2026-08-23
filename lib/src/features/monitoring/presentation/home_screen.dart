@@ -15,6 +15,7 @@ import 'device_screen.dart';
 import 'live_screen.dart';
 import 'widgets/assessment_banner.dart';
 import 'widgets/connection_pill.dart';
+import 'widgets/machine_panel.dart';
 import 'widgets/sensor_card.dart';
 import 'widgets/stage_timeline.dart';
 
@@ -110,6 +111,14 @@ class HomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 20),
             ],
+
+            const _SectionHeading(
+              eyebrow: 'THE MACHINE',
+              title: 'Right now',
+            ),
+            const SizedBox(height: 12),
+            const MachinePanel(),
+            const SizedBox(height: 22),
 
             _BatchCard(batch: batch, status: status),
             const SizedBox(height: 22),

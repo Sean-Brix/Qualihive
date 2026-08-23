@@ -1,0 +1,69 @@
+{
+  "asset_id": 7,
+  "filename": "honey_machine_asset_07_hopper_honey_fill.svg",
+  "purpose": "Dynamic honey fill inside hopper",
+  "master_viewbox": [
+    0,
+    0,
+    1200,
+    500
+  ],
+  "stack_order": {
+    "above": [
+      "machine_base.svg"
+    ],
+    "below": [
+      "future hopper surface overlay",
+      "status overlays"
+    ]
+  },
+  "geometry": {
+    "inner_clip_polygon": [
+      [
+        98.0,
+        118.0
+      ],
+      [
+        242.0,
+        118.0
+      ],
+      [
+        222.5,
+        198.0
+      ],
+      [
+        117.5,
+        198.0
+      ]
+    ],
+    "bounds": {
+      "left": 98.0,
+      "top": 118.0,
+      "right": 242.0,
+      "bottom": 198.0,
+      "width": 144.0,
+      "height": 80.0
+    },
+    "bottom_anchor_y": 198.0,
+    "usable_fill_height_px": 80.0
+  },
+  "level_mapping": {
+    "input_range": [
+      0.0,
+      1.0
+    ],
+    "formula": {
+      "visible_height": "80.0 * hopperLevel",
+      "reveal_top_y": "198.0 - (80.0 * hopperLevel)"
+    },
+    "reveal_direction": "bottom_to_top",
+    "important": "Clip/reveal the asset; do not scale the SVG vertically."
+  },
+  "flutter_notes": [
+    "Render at the same size as machine_base.svg.",
+    "Use a bottom-anchored ClipRect or CustomClipper to reveal from empty to full.",
+    "Clamp hopperLevel to 0.0..1.0.",
+    "Animate only the clipping boundary with TweenAnimationBuilder or AnimationController.",
+    "Keep the asset's transform unchanged so it remains perfectly registered to the machine base."
+  ]
+}

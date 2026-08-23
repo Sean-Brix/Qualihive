@@ -1,0 +1,136 @@
+{
+  "package": "Honey Filtration Digital Twin Core Asset Set",
+  "version": "1.0",
+  "master_viewbox": [
+    0,
+    0,
+    1200,
+    500
+  ],
+  "core_asset_count": 23,
+  "assets": [
+    {
+      "id": 1,
+      "name": "machine_base.svg",
+      "role": "static machine base"
+    },
+    {
+      "id": 2,
+      "name": "pump_rotor.svg",
+      "role": "reusable rotating pump rotor"
+    },
+    {
+      "id": 3,
+      "name": "pump_glow.svg",
+      "role": "reusable active-pump glow"
+    },
+    {
+      "id": 4,
+      "name": "filter1_processing_overlay.svg",
+      "role": "Filter 1 processing"
+    },
+    {
+      "id": 5,
+      "name": "filter2_processing_overlay.svg",
+      "role": "Filter 2 processing"
+    },
+    {
+      "id": 6,
+      "name": "filter3_processing_overlay.svg",
+      "role": "Filter 3 processing"
+    },
+    {
+      "id": 7,
+      "name": "hopper_honey_fill.svg",
+      "role": "dynamic hopper honey level"
+    },
+    {
+      "id": 8,
+      "name": "hopper_surface_wave.svg",
+      "role": "dynamic hopper surface"
+    },
+    {
+      "id": 9,
+      "name": "output_jar_honey_fill.svg",
+      "role": "load-cell-driven jar fill"
+    },
+    {
+      "id": 10,
+      "name": "output_jar_surface_wave.svg",
+      "role": "jar meniscus/surface"
+    },
+    {
+      "id": 11,
+      "name": "flow_path_01_hopper_to_p1.svg",
+      "role": "Hopper -> P1 flow"
+    },
+    {
+      "id": 12,
+      "name": "flow_path_02_p1_to_filter1.svg",
+      "role": "P1 -> Filter 1 flow"
+    },
+    {
+      "id": 13,
+      "name": "flow_path_03_filter1_to_p2.svg",
+      "role": "Filter 1 -> P2 internal transfer"
+    },
+    {
+      "id": 14,
+      "name": "flow_path_04_p2_to_filter2.svg",
+      "role": "P2 -> Filter 2 flow"
+    },
+    {
+      "id": 15,
+      "name": "flow_path_05_filter2_to_p3.svg",
+      "role": "Filter 2 -> P3 internal transfer"
+    },
+    {
+      "id": 16,
+      "name": "flow_path_06_p3_to_filter3.svg",
+      "role": "P3 -> Filter 3 flow"
+    },
+    {
+      "id": 17,
+      "name": "flow_path_07_filter3_to_p4.svg",
+      "role": "Filter 3 -> P4 internal transfer"
+    },
+    {
+      "id": 18,
+      "name": "flow_path_08_p4_to_output_jar.svg",
+      "role": "P4 -> output jar flow"
+    },
+    {
+      "id": 19,
+      "name": "start_button_active.svg",
+      "role": "START pressed/running state"
+    },
+    {
+      "id": 20,
+      "name": "stop_button_active.svg",
+      "role": "STOP pressed/stopped state"
+    },
+    {
+      "id": 21,
+      "name": "online_connected_status.svg",
+      "role": "healthy connectivity"
+    },
+    {
+      "id": 22,
+      "name": "offline_disconnected_status.svg",
+      "role": "offline/stale telemetry"
+    },
+    {
+      "id": 23,
+      "name": "warning_error_overlay.svg",
+      "role": "high-priority warning/error state"
+    }
+  ],
+  "recommended_state_priority": [
+    "critical warning/error",
+    "offline/disconnected",
+    "normal processing/flow",
+    "online/connected",
+    "idle"
+  ],
+  "handoff_note": "All assets are designed for the same 1200x500 scene. Do not independently resize/reposition registered overlays unless metadata explicitly says the asset is reusable by translation."
+}

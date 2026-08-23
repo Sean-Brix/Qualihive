@@ -1,0 +1,72 @@
+{
+  "asset_id": 20,
+  "filename": "honey_machine_asset_20_stop_button_active.svg",
+  "purpose": "Active/pressed visual overlay for the physical STOP button on the control panel",
+  "master_viewbox": [
+    0,
+    0,
+    1200,
+    500
+  ],
+  "registration": {
+    "center": [
+      1015.0,
+      232.0
+    ],
+    "base_button_radius_px": 13.0,
+    "source": "Asset 01 machine_base.svg"
+  },
+  "geometry": {
+    "pressed_face_radius_px": 12.2,
+    "inner_ring_radius_px": 13.8,
+    "outer_ring_radius_px": 18.0,
+    "glow_radius_px": 25.0
+  },
+  "states": {
+    "idle": {
+      "visible": false
+    },
+    "pressed_ack": {
+      "visible": true,
+      "local_scale_from": 0.94,
+      "local_scale_to": 1.0,
+      "duration_ms_range": [
+        120,
+        180
+      ],
+      "pivot": [
+        1015.0,
+        232.0
+      ]
+    },
+    "stopped_latched": {
+      "visible": true,
+      "pulse_outer_glow_opacity": [
+        0.2,
+        0.55,
+        0.2
+      ],
+      "duration_ms_range": [
+        850,
+        1200
+      ],
+      "repeat": false
+    }
+  },
+  "state_priority": {
+    "normal_stop": "Asset 20 may be shown",
+    "fault_or_emergency_stop": "Asset 23 warning/error overlay should take priority"
+  },
+  "flutter_notes": [
+    "Render in the same 1200x500 scene coordinate system as machine_base.svg.",
+    "Do not reposition the asset; it is already aligned to the STOP button.",
+    "For press animation, transform only the local group around center (1015,232).",
+    "Recommended trigger: stopAcknowledged || transitionToStopped.",
+    "For an emergency/fault stop, combine or replace with the higher-priority warning/error visual."
+  ],
+  "stack_order": [
+    "machine_base.svg",
+    "stop_button_active.svg",
+    "warning/error overlays"
+  ]
+}

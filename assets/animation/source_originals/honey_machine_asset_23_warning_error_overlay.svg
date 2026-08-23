@@ -1,0 +1,183 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200"
+     height="500"
+     viewBox="0 0 1200 500">
+  <defs>
+    <radialGradient id="faultGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFB13D" stop-opacity="0.58"/>
+      <stop offset="45%" stop-color="#F57C00" stop-opacity="0.30"/>
+      <stop offset="100%" stop-color="#F57C00" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="faultSlotFace" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFC65C"/>
+      <stop offset="50%" stop-color="#F59A23"/>
+      <stop offset="100%" stop-color="#BF5B00"/>
+    </linearGradient>
+
+    <linearGradient id="warningTriangle" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFD56C"/>
+      <stop offset="58%" stop-color="#F6A525"/>
+      <stop offset="100%" stop-color="#D66C00"/>
+    </linearGradient>
+
+    <filter id="panelFaultGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="5.0"/>
+    </filter>
+
+    <filter id="slotGlow" x="-140%" y="-220%" width="380%" height="540%">
+      <feGaussianBlur stdDeviation="3.0"/>
+    </filter>
+
+    <filter id="triangleShadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2.0" flood-opacity="0.34"/>
+    </filter>
+  </defs>
+
+  <!--
+    ASSET 23 — WARNING / ERROR OVERLAY
+
+    MASTER CANVAS
+      viewBox: 0 0 1200 500
+      Must remain unchanged.
+
+    EXACT CONTROL-PANEL REGISTRATION
+      control box: x=920.0, y=110.0,
+                   w=185.0, h=190.0
+
+      display:     x=948.0, y=138.0,
+                   w=84.0, h=62.0
+                   center=(990.0,169.0)
+
+      warning/error indicator slot:
+                   x=1060.0, y=160.0,
+                   w=22.0, h=12.0
+                   center=(1071.0,166.0)
+
+    SLOT ASSIGNMENT
+      top slot    = connectivity (Assets 21/22)
+      middle slot = warning/error (Asset 23)
+      bottom slot = available for future process/status use
+
+    PURPOSE
+      High-priority fault indication for:
+        - sensor out of range / failed sensor
+        - pump stall or actuator fault
+        - output jar full / overweight
+        - abnormal process condition
+        - emergency stop / system fault
+        - communication fault that is severe enough to halt operation
+
+    RECOMMENDED SEVERITY MODES
+
+      warning:
+        use this asset as supplied (amber/orange)
+        pulse opacity slowly
+        machine may continue if application logic allows
+
+      critical error:
+        apply a red ColorFilter / tint in Flutter OR use a red overlay color
+        pulse slightly faster
+        stop process animations if safety logic requires
+
+    RECOMMENDED ANIMATION
+      warning:
+        panel halo opacity 0.18 -> 0.42 -> 0.18
+        duration 1200-1800 ms
+
+      critical:
+        panel halo opacity 0.30 -> 0.72 -> 0.30
+        duration 700-1100 ms
+
+      Do not strobe rapidly.
+
+    IMPORTANT UI RULE
+      Numeric/text fault details should be rendered as real Flutter text over
+      the control display, not baked into this SVG.
+      Suggested examples:
+        "P2 STALL"
+        "PH SENSOR ERROR"
+        "JAR FULL"
+        "TEMP HIGH"
+
+    PRIORITY
+      Asset 23 has higher visual priority than:
+        Asset 19 START active
+        Asset 20 STOP active
+        Asset 21 ONLINE
+        Asset 22 OFFLINE
+
+    STACK ORDER
+      machine_base.svg
+      normal process overlays
+      warning_error_overlay.svg
+      Flutter fault text / modal if required
+  -->
+
+  <g id="warning_error_overlay">
+
+    <!-- Broad but restrained halo around the control enclosure -->
+    <rect x="912.0"
+          y="102.0"
+          width="201.0"
+          height="206.0"
+          rx="21"
+          fill="none"
+          stroke="#F59A23"
+          stroke-width="7"
+          stroke-opacity="0.20"
+          filter="url(#panelFaultGlow)"/>
+
+    <!-- Exact middle warning/error slot glow -->
+    <rect x="1053.0"
+          y="154.0"
+          width="36.0"
+          height="24.0"
+          rx="10"
+          fill="url(#faultGlow)"
+          opacity="0.94"
+          filter="url(#slotGlow)"/>
+
+    <!-- Exact middle status indicator active face -->
+    <rect x="1060.0"
+          y="160.0"
+          width="22.0"
+          height="12.0"
+          rx="4.0"
+          fill="url(#faultSlotFace)"
+          stroke="#FFE1A2"
+          stroke-width="0.9"
+          opacity="0.99"/>
+
+    <!-- Warning triangle centered over the control display -->
+    <polygon points="990.0,146.0 1014.0,190.0 966.0,190.0"
+             fill="url(#warningTriangle)"
+             stroke="#FFF0BE"
+             stroke-width="1.5"
+             stroke-linejoin="round"
+             filter="url(#triangleShadow)"
+             opacity="0.97"/>
+
+    <!-- Exclamation mark -->
+    <rect x="987.8"
+          y="158.0"
+          width="4.4"
+          height="17.5"
+          rx="2.2"
+          fill="#5B3300"
+          opacity="0.92"/>
+
+    <circle cx="990.0"
+            cy="182.5"
+            r="2.6"
+            fill="#5B3300"
+            opacity="0.92"/>
+
+    <!-- small highlight on triangle -->
+    <path d="M 980 154 L 989 150"
+          stroke="#FFF8D9"
+          stroke-width="1.4"
+          stroke-linecap="round"
+          opacity="0.52"/>
+  </g>
+</svg>

@@ -1,0 +1,99 @@
+{
+  "asset_id": 13,
+  "filename": "honey_machine_asset_13_flow_path_03_filter1_to_p2.svg",
+  "route_id": "filter1_to_p2",
+  "route_classification": "conceptual_internal_transfer",
+  "purpose": "Visualize the process transition from Filter 1 into Pump 2 where the current machine illustration has no exposed connecting pipe.",
+  "engineering_disclaimer": "This path is an app visualization anchor derived from the digital twin layout, not a claimed physical pipe route or fabrication dimension.",
+  "master_viewbox": [
+    0,
+    0,
+    1200,
+    500
+  ],
+  "anchors": {
+    "start_filter1_media_bottom_center": [
+      410.0,
+      266.0
+    ],
+    "filter1_outer_bottom_anchor": [
+      410.0,
+      300.0
+    ],
+    "end_p2_conceptual_inlet": [
+      440.0,
+      335.0
+    ]
+  },
+  "path": {
+    "svg_d": "M 410 266 V 300 C 410 320 420 335 440 335",
+    "line_segment": {
+      "from": [
+        410.0,
+        266.0
+      ],
+      "to": [
+        410.0,
+        300.0
+      ],
+      "length_px": 34.0
+    },
+    "cubic_segment": {
+      "p0": [
+        410.0,
+        300.0
+      ],
+      "p1": [
+        410.0,
+        320.0
+      ],
+      "p2": [
+        420.0,
+        335.0
+      ],
+      "p3": [
+        440.0,
+        335.0
+      ],
+      "approx_length_px": 52.111337
+    },
+    "approx_total_length_px": 86.111337
+  },
+  "visual": {
+    "main_stroke_width_px": 4.4,
+    "glow_stroke_width_px": 7.4,
+    "dash_array": [
+      9.0,
+      8.0
+    ],
+    "dash_period_px": 17.0,
+    "main_color": "#E7A12A",
+    "highlight_color": "#FFD975",
+    "note": "Slightly thinner than exposed-pipe flow to indicate hidden/internal transfer."
+  },
+  "animation": {
+    "direction": "filter1_to_p2",
+    "stroke_dashoffset_from": 0.0,
+    "stroke_dashoffset_to": -17.0,
+    "duration_ms_range": [
+      500,
+      850
+    ],
+    "repeat": true,
+    "active_condition_example": "running && filter1Processing && pump2"
+  },
+  "flutter_notes": [
+    "Keep the shared 1200x500 logical coordinate space.",
+    "Do not independently offset this path.",
+    "If using PathMetric, use the complete supplied SVG path.",
+    "This internal-transfer overlay may be rendered with slightly lower opacity than exposed-pipe routes.",
+    "If the final mechanical design later provides an explicit Filter 1 -> P2 tube route, replace this conceptual path with that measured route."
+  ],
+  "stack_order": [
+    "machine_base.svg",
+    "filter1_processing_overlay.svg",
+    "flow_path_03_filter1_to_p2.svg",
+    "pump2 rotor/glow",
+    "status overlays"
+  ]
+}

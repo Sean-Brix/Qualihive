@@ -1,0 +1,59 @@
+{
+  "asset_id": 21,
+  "filename": "honey_machine_asset_21_online_connected_status.svg",
+  "purpose": "Online/connected status overlay for the control-panel connectivity indicator",
+  "master_viewbox": [
+    0,
+    0,
+    1200,
+    500
+  ],
+  "slot_assignment": {
+    "control_panel_slot": "top_status_indicator",
+    "meaning": "connectivity",
+    "source_geometry": "Asset 01 machine_base.svg"
+  },
+  "registration": {
+    "x": 1060.0,
+    "y": 135.0,
+    "width": 22.0,
+    "height": 12.0,
+    "corner_radius": 4.0,
+    "center": [
+      1071.0,
+      141.0
+    ]
+  },
+  "state_logic": {
+    "show_when": "connected && !telemetryStale",
+    "hide_when": "!connected || telemetryStale",
+    "recommended_telemetry_stale_rule": "Application-defined timeout based on expected telemetry interval; do not equate an open socket with healthy current data."
+  },
+  "animation": {
+    "steady_face_opacity": 0.98,
+    "optional_glow_pulse_opacity": [
+      0.2,
+      0.46,
+      0.2
+    ],
+    "duration_ms_range": [
+      1600,
+      2400
+    ],
+    "repeat": true,
+    "note": "Prefer steady green with only a subtle heartbeat; avoid aggressive blinking."
+  },
+  "flutter_notes": [
+    "Render in the same 1200x500 scene coordinate system as machine_base.svg.",
+    "Do not independently reposition the asset.",
+    "Use the top control-panel indicator slot for connectivity consistently.",
+    "Recommended state: connected && !telemetryStale.",
+    "If warning/error is active, Asset 23 should visually take priority.",
+    "Do not use this online state solely from Bluetooth/Wi-Fi socket status if telemetry has stopped updating."
+  ],
+  "stack_order": [
+    "machine_base.svg",
+    "online_connected_status.svg",
+    "warning/error overlay"
+  ]
+}
