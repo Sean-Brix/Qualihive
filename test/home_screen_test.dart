@@ -6,10 +6,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qualihive/src/core/database/app_database.dart';
 import 'package:qualihive/src/core/database/database_provider.dart';
+import 'package:qualihive/src/features/auth/data/auth_repository.dart';
 import 'package:qualihive/src/features/monitoring/application/monitoring_providers.dart';
 import 'package:qualihive/src/features/monitoring/data/transport/simulated_sensor_transport.dart';
+import 'package:qualihive/src/features/monitoring/domain/quality_spec.dart';
 import 'package:qualihive/src/features/monitoring/presentation/home_screen.dart';
 import 'package:qualihive/src/features/monitoring/presentation/widgets/assessment_banner.dart';
+import 'package:qualihive/src/features/monitoring/presentation/widgets/machine_panel.dart';
 import 'package:qualihive/src/features/monitoring/presentation/widgets/sensor_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -105,6 +108,72 @@ void main() {
     expect(
       find.byType(SensorCard),
       findsNWidgets(HomeScreen.headline.length),
+    );
+
+    await unmount(tester);
+  });
+
+  testWidgets('reads the headline values out on the machine card itself',
+      (tester) async {
+    // The numbers have to be legible without scrolling away from the drawing:
+    // on a phone the detail grid sits below the fold while the machine is on
+    // screen, so the machine card carries its own glance strip.
+    await pumpHome(tester);
+    await connectAndSettle(tester);
+
+    final strip = find.descendant(
+      of: find.byType(MachinePanel),
+      matching: find.text('LIVE READINGS'),
+    );
+    expect(strip, findsOneWidget);
+
+    for (final parameter in MachinePanel.readouts) {
+      expect(
+        find.descendant(
+          of: find.byType(MachinePanel),
+          matching: find.text(QualityStandard.defaultOf(parameter).displayLabel),
+        ),
+        findsOneWidget,
+        reason: '${parameter.name} should be read out on the machine card',
+      );
+    }
+
+    await unmount(tester);
+  });
+
+  testWidgets('the notification bell is in the header', (tester) async {
+    // Alerts used to be reachable only through the More tab, two taps away.
+    await pumpHome(tester);
+
+    expect(find.byIcon(Icons.notifications_none_rounded), findsOneWidget);
+
+    await unmount(tester);
+  });
+
+  testWidgets('greets the beekeeper once, in the app bar', (tester) async {
+    // The greeting and the wordmark used to stack as two separate headers.
+    final account = await AuthRepository(database.accountDao).signUp(
+      username: 'beekeeper',
+      password: 'honeybee123',
+      displayName: 'Sean Brix',
+      farmName: 'Brix Apiary',
+    );
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'qualihive.session.account_id': account.id,
+    });
+
+    await pumpHome(tester);
+    // The stored session is read asynchronously before the name can be shown.
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+
+    final greeting = find.text('Hello, Sean');
+    expect(greeting, findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(AppBar), matching: greeting),
+      findsOneWidget,
+      reason: 'the greeting belongs in the app bar, not a second time below it',
     );
 
     await unmount(tester);

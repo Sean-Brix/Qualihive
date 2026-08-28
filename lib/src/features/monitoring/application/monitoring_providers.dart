@@ -11,6 +11,7 @@ import '../data/batch_dao.dart';
 import '../data/batch_repository.dart';
 import '../data/reading_dao.dart';
 import '../data/reading_repository.dart';
+import '../data/sample_data_seeder.dart';
 import '../data/transport/ble_sensor_transport.dart';
 import '../data/transport/sensor_transport.dart';
 import '../data/transport/simulated_sensor_transport.dart';
@@ -116,6 +117,21 @@ BatchSession batchSession(Ref ref) {
     standard: () => ref.read(activeStandardProvider),
     accountId: () => ref.read(currentAccountIdProvider),
   );
+}
+
+/// Writes and removes the demonstration archive.
+@Riverpod(keepAlive: true)
+SampleDataSeeder sampleDataSeeder(Ref ref) => SampleDataSeeder(
+      batches: ref.watch(batchRepositoryProvider),
+      readings: ref.watch(readingRepositoryProvider),
+    );
+
+/// Whether the archive currently holds generated batches.
+@riverpod
+Future<bool> hasSampleData(Ref ref) {
+  // Re-checked whenever a batch is written or deleted.
+  ref.watch(batchHistoryProvider);
+  return ref.watch(sampleDataSeederProvider).hasSampleData();
 }
 
 /// The live feed, filed into the active batch on the way through.
@@ -318,6 +334,27 @@ class MonitoringController extends _$MonitoringController {
       await ref.read(readingRepositoryProvider).clear();
       await ref.read(batchRepositoryProvider).clear();
     });
+  }
+
+  /// Writes a season of generated batches so the charts have something to
+  /// show. Graded against the standard in force right now, like a real run.
+  Future<void> loadSampleData({int batchCount = 24}) async {
+    state = const AsyncLoading<void>();
+    state = await AsyncValue.guard(
+      () => ref.read(sampleDataSeederProvider).seed(
+            standard: ref.read(activeStandardProvider),
+            accountId: ref.read(currentAccountIdProvider),
+            batchCount: batchCount,
+          ),
+    );
+  }
+
+  /// Takes the generated batches back out, leaving real runs alone.
+  Future<void> removeSampleData() async {
+    state = const AsyncLoading<void>();
+    state = await AsyncValue.guard(
+      () => ref.read(sampleDataSeederProvider).remove(),
+    );
   }
 
   Future<void> acknowledgeAlert(int id) async {

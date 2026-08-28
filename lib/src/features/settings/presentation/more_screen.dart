@@ -24,6 +24,8 @@ class MoreScreen extends ConsumerWidget {
     final account = ref.watch(sessionControllerProvider).value;
     final unread = ref.watch(unreadAlertCountProvider).value ?? 0;
     final status = ref.watch(transportStatusProvider).value;
+    final hasSamples = ref.watch(hasSampleDataProvider).value ?? false;
+    final busy = ref.watch(monitoringControllerProvider).isLoading;
 
     return Scaffold(
       appBar: AppBar(title: const Text('More')),
@@ -85,6 +87,19 @@ class MoreScreen extends ConsumerWidget {
                 subtitle: 'Project, sensors and system information',
                 onTap: () => context.goNamed(AboutScreen.name),
               ),
+              _SettingsTile(
+                icon: hasSamples
+                    ? Icons.layers_clear_outlined
+                    : Icons.auto_graph_rounded,
+                title: hasSamples ? 'Remove sample data' : 'Load sample data',
+                subtitle: hasSamples
+                    ? 'Generated batches are in the archive'
+                    : 'Fill the charts with a season of generated batches',
+                onTap: () {
+                  if (busy) return;
+                  _confirmSampleData(context, ref, loaded: hasSamples);
+                },
+              ),
             ],
           ),
           const SizedBox(height: 14),
@@ -113,6 +128,62 @@ class MoreScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Writes or removes the demonstration archive.
+  ///
+  /// Deliberately a decision the beekeeper makes rather than something the app
+  /// does on first launch: generated batches sitting unannounced next to real
+  /// ones would be a traceability problem in a record the app exports as a
+  /// quality report. Every generated batch says so in its notes.
+  Future<void> _confirmSampleData(
+    BuildContext context,
+    WidgetRef ref, {
+    required bool loaded,
+  }) async {
+    final messenger = ScaffoldMessenger.of(context);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(loaded ? 'Remove sample data?' : 'Load sample data?'),
+        content: Text(
+          loaded
+              ? 'The generated batches and their readings are deleted. Batches '
+                  'you actually ran are left alone.'
+              : 'Writes 24 completed batches across the last two months so '
+                  'Statistics, History and the reports have something to show. '
+                  'Each one is marked as sample data and can be removed again.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(loaded ? 'Remove' : 'Load'),
+          ),
+        ],
+      ),
+    );
+
+    if (!(confirmed ?? false)) return;
+
+    final controller = ref.read(monitoringControllerProvider.notifier);
+    if (loaded) {
+      await controller.removeSampleData();
+    } else {
+      await controller.loadSampleData();
+    }
+
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          loaded ? 'Sample data removed.' : 'Sample data loaded.',
+        ),
       ),
     );
   }

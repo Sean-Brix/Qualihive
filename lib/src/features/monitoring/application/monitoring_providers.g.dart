@@ -563,6 +563,95 @@ final class BatchSessionProvider
 
 String _$batchSessionHash() => r'1a1fe07a61149427b7a9f7f742462382a167cae7';
 
+/// Writes and removes the demonstration archive.
+
+@ProviderFor(sampleDataSeeder)
+final sampleDataSeederProvider = SampleDataSeederProvider._();
+
+/// Writes and removes the demonstration archive.
+
+final class SampleDataSeederProvider
+    extends
+        $FunctionalProvider<
+          SampleDataSeeder,
+          SampleDataSeeder,
+          SampleDataSeeder
+        >
+    with $Provider<SampleDataSeeder> {
+  /// Writes and removes the demonstration archive.
+  SampleDataSeederProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'sampleDataSeederProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$sampleDataSeederHash();
+
+  @$internal
+  @override
+  $ProviderElement<SampleDataSeeder> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  SampleDataSeeder create(Ref ref) {
+    return sampleDataSeeder(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(SampleDataSeeder value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<SampleDataSeeder>(value),
+    );
+  }
+}
+
+String _$sampleDataSeederHash() => r'd6c71d7dd8f6cf237ef66ca79c99d74f14afe36a';
+
+/// Whether the archive currently holds generated batches.
+
+@ProviderFor(hasSampleData)
+final hasSampleDataProvider = HasSampleDataProvider._();
+
+/// Whether the archive currently holds generated batches.
+
+final class HasSampleDataProvider
+    extends $FunctionalProvider<AsyncValue<bool>, bool, FutureOr<bool>>
+    with $FutureModifier<bool>, $FutureProvider<bool> {
+  /// Whether the archive currently holds generated batches.
+  HasSampleDataProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'hasSampleDataProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$hasSampleDataHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<bool> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<bool> create(Ref ref) {
+    return hasSampleData(ref);
+  }
+}
+
+String _$hasSampleDataHash() => r'd4d8f6a9876f987c0c5fcf169e37e37fc9eca6fb';
+
 /// The live feed, filed into the active batch on the way through.
 ///
 /// keepAlive so a reading is not dropped while the user is on another screen.
@@ -1167,7 +1256,7 @@ final class MonitoringControllerProvider
 }
 
 String _$monitoringControllerHash() =>
-    r'c4e3e22f3bb58eeded1960be08a1241d171abf2e';
+    r'92e878ee6e27c1eb17004aa77bb1c5ddc0219fd2';
 
 /// Actions the UI can trigger. Holds only the status of the last action.
 

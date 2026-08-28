@@ -4,10 +4,23 @@ import '../../data/transport/sensor_transport.dart';
 
 /// Compact connection indicator for the app bar.
 class ConnectionPill extends StatelessWidget {
-  const ConnectionPill({super.key, required this.status, this.onTap});
+  const ConnectionPill({
+    super.key,
+    required this.status,
+    this.onTap,
+    this.compact = false,
+  });
 
   final TransportStatus status;
   final VoidCallback? onTap;
+
+  /// Names the connection state rather than the device.
+  ///
+  /// A device name runs long — "Qualihive Simulator" alone is wider than the
+  /// title it shares the app bar with — so screens that put something else in
+  /// the title ask for the short form. The device name is still one tap away
+  /// on the Device screen.
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -55,9 +68,9 @@ class ConnectionPill extends StatelessWidget {
                   ),
                 const SizedBox(width: 8),
                 ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 116),
+                  constraints: BoxConstraints(maxWidth: compact ? 92 : 116),
                   child: Text(
-                    status.label,
+                    _label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.labelMedium?.copyWith(
@@ -72,6 +85,19 @@ class ConnectionPill extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String get _label {
+    if (!compact) return status.label;
+
+    return switch (status.state) {
+      TransportState.unavailable => 'No Bluetooth',
+      TransportState.disconnected => 'Offline',
+      TransportState.scanning => 'Scanning…',
+      TransportState.connecting => 'Connecting…',
+      TransportState.connected => 'Connected',
+      TransportState.error => 'Error',
+    };
   }
 
   Color _color(ColorScheme scheme) => switch (status.state) {

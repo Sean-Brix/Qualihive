@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/widgets/qualihive_logo.dart';
 import '../../auth/application/auth_providers.dart';
+import '../../notifications/presentation/notifications_screen.dart';
 import '../../statistics/application/statistics_providers.dart';
 import '../application/monitoring_providers.dart';
 import '../data/transport/sensor_transport.dart';
@@ -30,12 +31,11 @@ class HomeScreen extends ConsumerWidget {
   static const String name = 'home';
 
   /// The four parameters shown on Home. The rest are one tap away on Live.
-  static const List<SensorParameter> headline = <SensorParameter>[
-    SensorParameter.ph,
-    SensorParameter.moisture,
-    SensorParameter.turbidity,
-    SensorParameter.temperature,
-  ];
+  ///
+  /// The same four the machine card reads out, so the glance strip under the
+  /// drawing and the detail grid below it never disagree about which
+  /// parameters matter.
+  static const List<SensorParameter> headline = MachinePanel.readouts;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -51,15 +51,59 @@ class HomeScreen extends ConsumerWidget {
     final totals = ref.watch(batchTotalsProvider).value;
 
     return Scaffold(
+      // One header, not two. The wordmark used to sit here with the greeting
+      // repeated immediately below it; the mark alone carries the branding and
+      // the greeting moves up into its place.
       appBar: AppBar(
         titleSpacing: 16,
-        title: const QualihiveWordmark(),
+        toolbarHeight: 66,
+        title: account == null
+            // Only on screen while the stored session is still being read.
+            // Scaled down rather than clipped: the wordmark is wider than what
+            // the actions leave behind on a narrow phone.
+            ? const FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: QualihiveWordmark(),
+              )
+            : Row(
+                children: <Widget>[
+                  const QualihiveLogo(size: 34),
+                  const SizedBox(width: 11),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          'Hello, ${account.displayName.split(' ').first}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          _todayLine(account.farmName),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
         actions: <Widget>[
           ConnectionPill(
             status: status,
+            compact: true,
             onTap: () => context.goNamed(DeviceScreen.name),
           ),
-          const SizedBox(width: 8),
+          const _NotificationsButton(),
+          const SizedBox(width: 4),
         ],
       ),
       body: RefreshIndicator(
@@ -67,51 +111,6 @@ class HomeScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(18, 8, 18, 36),
           children: <Widget>[
-            if (account != null) ...<Widget>[
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: <Widget>[
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          'Hello, ${account.displayName.split(' ').first}',
-                          style: theme.textTheme.headlineSmall,
-                        ),
-                        if (account.farmName != null) ...<Widget>[
-                          const SizedBox(height: 3),
-                          Text(
-                            account.farmName!,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: scheme.secondaryContainer,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      DateFormat.MMMd().format(DateTime.now()),
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: scheme.onSecondaryContainer,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-            ],
-
             const _SectionHeading(
               eyebrow: 'THE MACHINE',
               title: 'Right now',
@@ -120,9 +119,8 @@ class HomeScreen extends ConsumerWidget {
             const MachinePanel(),
             const SizedBox(height: 22),
 
-            _BatchCard(batch: batch, status: status),
-            const SizedBox(height: 22),
-
+            // The verdict follows the machine directly. The batch card used to
+            // sit here, which pushed every number below the fold on a phone.
             if (evaluation != null) ...<Widget>[
               _SectionHeading(
                 eyebrow: 'LIVE QUALITY',
@@ -135,30 +133,15 @@ class HomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               AssessmentBanner.of(evaluation, compact: true),
-              const SizedBox(height: 10),
-              Row(
-                children: <Widget>[
-                  Icon(
-                    Icons.schedule_rounded,
-                    size: 14,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'Updated '
-                      '${DateFormat.Hms().format(evaluation.reading.recordedAt)}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
               const SizedBox(height: 12),
+              // The reading time is on the machine card's strip, next to the
+              // numbers it stamps, rather than repeated here.
               _HeadlineGrid(evaluation: evaluation),
             ] else
               _WaitingCard(status: status),
+            const SizedBox(height: 22),
+
+            _BatchCard(batch: batch, status: status),
 
             const SizedBox(height: 24),
             const _SectionHeading(
@@ -172,6 +155,44 @@ class HomeScreen extends ConsumerWidget {
               acceptanceRate: totals?.acceptanceRate,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Today's date, with the farm name folded in when there is one.
+///
+/// Both used to have a place of their own in the header — a pill for the date
+/// and a second line for the farm. Neither earns the vertical space.
+String _todayLine(String? farmName) {
+  final today = DateFormat.MMMd().format(DateTime.now());
+  return farmName == null ? today : '$today · $farmName';
+}
+
+/// The bell, with the same unread count the More tab badges.
+///
+/// Alerts are the one thing on Home the beekeeper cannot afford to discover by
+/// scrolling, and until now they were only visible on a tab two taps away.
+class _NotificationsButton extends ConsumerWidget {
+  const _NotificationsButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unread = ref.watch(unreadAlertCountProvider).value ?? 0;
+
+    return IconButton(
+      onPressed: () => context.goNamed(NotificationsScreen.name),
+      tooltip: unread == 0 ? 'Notifications' : '$unread unread notifications',
+      // The icon changes shape as well as gaining a badge: a count alone is a
+      // small target for a glance, and disappears entirely at zero.
+      icon: Badge.count(
+        count: unread,
+        isLabelVisible: unread > 0,
+        child: Icon(
+          unread > 0
+              ? Icons.notifications_active_outlined
+              : Icons.notifications_none_rounded,
         ),
       ),
     );

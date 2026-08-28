@@ -145,20 +145,31 @@ class SensorCard extends StatelessWidget {
                 const Spacer(),
                 Row(
                   children: <Widget>[
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 7,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: status.containerColor(scheme),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        status.chipLabel,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: statusColor,
-                          fontWeight: FontWeight.w700,
+                    // A Row lays its inflexible children out against an
+                    // unbounded main axis, so without a ceiling the chip is
+                    // free to grow past the edge of the card — which is what
+                    // "Out of range" does at a large text scale. The cap
+                    // clears every label at the default scale and turns a
+                    // longer one into an ellipsis rather than an overflow.
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 96),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: status.containerColor(scheme),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          status.chipLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: statusColor,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ),
