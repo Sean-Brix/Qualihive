@@ -184,7 +184,13 @@ export class BleSensorTransport implements SensorTransport {
     this.emit({ state: 'connecting', device, message: null });
 
     try {
-      const target = await this.manager.connectToDevice(device.id, { timeout: 15_000 });
+      // A larger MTU lets the ESP32 send a whole packet in one notification
+      // instead of 20-byte fragments; it is a request, and the buffer copes
+      // either way.
+      const target = await this.manager.connectToDevice(device.id, {
+        timeout: 15_000,
+        requestMTU: 185,
+      });
       this.device = target;
 
       this.disconnectSubscription = this.manager.onDeviceDisconnected(device.id, () => {

@@ -25,14 +25,7 @@
         "foregroundImage": "./assets/branding/ic_launcher_foreground.png",
         "backgroundColor": "#0C201C"
       },
-      "predictiveBackGestureEnabled": false,
-      "permissions": [
-        "android.permission.BLUETOOTH",
-        "android.permission.BLUETOOTH_ADMIN",
-        "android.permission.BLUETOOTH_SCAN",
-        "android.permission.BLUETOOTH_CONNECT",
-        "android.permission.ACCESS_FINE_LOCATION"
-      ]
+      "predictiveBackGestureEnabled": false
     },
     "plugins": [
       "expo-router",

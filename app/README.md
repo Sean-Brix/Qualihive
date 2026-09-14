@@ -166,12 +166,48 @@ react-native-ble-plx and expo-sqlite are native modules, so the app runs in a
 
 ```bash
 npm install
-npx expo prebuild            # generates android/ and ios/ (gitignored)
-npx expo run:android         # or: npx expo run:ios
+npx expo run:android         # builds and launches on a connected phone/emulator
 ```
 
-Then start Metro with `npm start` on later runs. Other scripts:
+### Installing on a phone
 
+**Local APK (no Expo account).** Needs the Android SDK and JDK 17 — the same
+things `expo run:android` needs.
+
+```bash
+npm run build:apk            # release APK, JS bundled in → dist/qualihive-release.apk
+npm run install:apk          # adb install to a phone with USB debugging on
+```
+
+Or copy `dist/qualihive-release.apk` to the phone and open it from Files
+(allow "install unknown apps" when asked). This build runs on its own and is
+the one to use for testing Bluetooth against the machine.
+
+`npm run build:apk:dev` makes the **dev client** instead (`dist/qualihive-debug.apk`):
+install it, run `npm start` on the PC, and the app connects to Metro over Wi-Fi
+for live reload.
+
+**Cloud build (EAS).** With an Expo account, `npx eas-cli login` once, then:
+
+```bash
+npm run build:eas:dev        # dev client APK, link + QR code to install
+npm run build:eas:preview    # standalone release APK
+```
+
+Profiles are in `eas.json`.
+
+### Testing Bluetooth
+
+1. Turn Bluetooth on, open **More → Machine connection**, keep **Bluetooth
+   device** selected and tap **Scan for devices**. Grant the Bluetooth (and, on
+   Android 11 or older, Location) prompt.
+2. Any nearby BLE device should appear — earbuds, a watch — which proves the
+   radio and permissions work even before the ESP32 is nearby.
+3. With the ESP32 advertising the Nordic UART service, tap it. The pill turns
+   green; the first packet lights up Home and Live. If the firmware sends no
+   `stage`, tap **Start** on Home to open a batch by hand.
+
+Other scripts:
 ```bash
 npm test                     # jest — domain, parser, session, CSV, hashing
 npm run typecheck            # tsc --noEmit
@@ -192,6 +228,7 @@ writes a season of generated batches for the charts.
 - **Monitoring only.** The app does not start, stop or control the machine.
 - **No authenticity claims.** Every PDF report carries the scope statement.
 - **Offline accounts.** Passwords are stored as PBKDF2-HMAC-SHA256 with a
-  per-account salt (120 000 iterations, the same scheme as the Flutter build).
+  per-account salt (same scheme as the Flutter build; 15 000 rounds, because the
+  derivation runs in JavaScript on the phone).
 - **Bundle id** is `com.honeyko.qualihive` in `app.json` — change it before any
   store upload.

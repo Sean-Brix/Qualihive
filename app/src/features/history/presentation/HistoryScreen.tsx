@@ -114,7 +114,14 @@ function FilterBar({
 }) {
   const { scheme } = useTheme();
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      // A ScrollView grows to fill its parent by default, which would split the
+      // screen with the list below; the strip is exactly one row of chips tall.
+      style={styles.filterStrip}
+      contentContainerStyle={styles.filters}
+    >
       <FilterChip label="All" selected={selected == null} onPress={() => onChange(null)} />
       {QUALITY_ASSESSMENTS.map((assessment) => (
         <FilterChip
@@ -179,7 +186,8 @@ function BatchTile({ batch }: { batch: Batch }) {
 }
 
 const styles = StyleSheet.create({
-  filters: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 8 },
+  filterStrip: { flexGrow: 0, flexShrink: 0 },
+  filters: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8 },
   list: { paddingHorizontal: 16, paddingTop: 8 },
   tile: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14 },
   tileIcon: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },

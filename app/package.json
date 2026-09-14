@@ -58,7 +58,12 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "prebuild": "expo prebuild"
+    "prebuild": "expo prebuild",
+    "build:apk": "node scripts/build-apk.mjs",
+    "build:apk:dev": "node scripts/build-apk.mjs --dev",
+    "build:eas:dev": "eas build --profile development --platform android",
+    "build:eas:preview": "eas build --profile preview --platform android",
+    "install:apk": "adb install -r dist/qualihive-release.apk"
   },
   "private": true
 }

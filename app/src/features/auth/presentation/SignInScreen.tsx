@@ -145,7 +145,10 @@ function FormPanel() {
         label="Username"
         prefixIcon="person-outline"
         value={username}
-        onChangeText={setUsername}
+        onChangeText={(v) => {
+          setUsername(v);
+          setFieldErrors((e) => ({ ...e, username: null }));
+        }}
         autoCapitalize="none"
         autoCorrect={false}
         autoComplete="username"
@@ -158,7 +161,10 @@ function FormPanel() {
         label="Password"
         prefixIcon="lock-outline"
         value={password}
-        onChangeText={setPassword}
+        onChangeText={(v) => {
+          setPassword(v);
+          setFieldErrors((e) => ({ ...e, password: null }));
+        }}
         password
         autoCapitalize="none"
         autoComplete={creating ? 'new-password' : 'current-password'}
@@ -175,7 +181,10 @@ function FormPanel() {
             label="Your name"
             prefixIcon="badge"
             value={displayName}
-            onChangeText={setDisplayName}
+            onChangeText={(v) => {
+              setDisplayName(v);
+              setFieldErrors((e) => ({ ...e, displayName: null }));
+            }}
             autoCapitalize="words"
             autoComplete="name"
             textContentType="name"

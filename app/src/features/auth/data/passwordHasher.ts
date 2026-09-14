@@ -14,12 +14,13 @@ export interface PasswordDigest {
 }
 
 /**
- * Cost factor. Deliberately high enough to be slow to brute-force and low
- * enough to keep sign-in responsive on the phones this runs on. The value
- * used is stored per account, so raising it later leaves existing accounts
- * working.
+ * Cost factor. High enough to be slow to brute-force and low enough to keep
+ * sign-in responsive on the phones this runs on: the derivation runs in
+ * JavaScript on Hermes, which has no JIT, so it is roughly ten times slower
+ * than the Dart build's 120 000 rounds would suggest. The value used is stored
+ * per account, so it can be changed later and existing accounts keep working.
  */
-export const DEFAULT_ITERATIONS = 120_000;
+export const DEFAULT_ITERATIONS = 15_000;
 
 const SALT_BYTES = 16;
 const KEY_BYTES = 32;
