@@ -4,9 +4,10 @@ module.exports = {
   testMatch: ['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    '\.svg$': '<rootDir>/src/test/svgMock.tsx',
+    '^@assets/(.*)$': '<rootDir>/assets/$1',
+    '\\.svg$': '<rootDir>/src/test/svgMock.tsx',
   },
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|expo-router|@sentry/react-native|native-base|react-native-svg|drizzle-orm)',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|expo-router|@sentry/react-native|native-base|react-native-svg|drizzle-orm|@noble)',
   ],
 };

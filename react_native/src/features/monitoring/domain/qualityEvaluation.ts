@@ -158,8 +158,6 @@ export function interpretation(evaluation: ParameterEvaluation): string {
       return 'Outside the selected reference range.';
     case 'unrated':
       return 'Recorded for reference; not graded.';
-    case 'missing':
-      return 'No data from this sensor.';
   }
 }
 

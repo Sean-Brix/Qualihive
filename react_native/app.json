@@ -7,20 +7,16 @@
     "orientation": "portrait",
     "icon": "./assets/branding/qualihive_app_icon.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "backgroundColor": "#FAF5E9",
-    "splash": {
-      "image": "./assets/branding/launch_image.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0C201C"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.honeyko.qualihive",
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "Qualihive connects to the honey filtration machine over Bluetooth LE to receive sensor readings.",
         "NSBluetoothPeripheralUsageDescription": "Qualihive connects to the honey filtration machine over Bluetooth LE to receive sensor readings.",
-        "UIBackgroundModes": ["bluetooth-central"]
+        "UIBackgroundModes": [
+          "bluetooth-central"
+        ]
       }
     },
     "android": {
@@ -59,10 +55,13 @@
         {
           "isBackgroundEnabled": false,
           "neverForLocation": true,
-          "modes": ["central"],
+          "modes": [
+            "central"
+          ],
           "bluetoothAlwaysPermission": "Qualihive connects to the honey filtration machine over Bluetooth LE to receive sensor readings."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
