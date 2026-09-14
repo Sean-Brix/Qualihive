@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Qualihive — Download for Android</title>
+  <meta name="description" content="Qualihive: the companion app for the Honey Ko Bee Farm honey filtration machine. Download the Android APK." />
+  <meta name="theme-color" content="#17352E" />
+  <link rel="icon" href="assets/icon.png" />
+  <meta property="og:title" content="Qualihive for Android" />
+  <meta property="og:description" content="Honey quality, clearly measured. Download the APK." />
+  <meta property="og:image" content="assets/icon.png" />
+  <style>
+    :root {
+      --parchment: #FAF5E9;
+      --surface: #FFFCF6;
+      --card: #FFFCF7;
+      --ink: #17352E;
+      --on-surface: #1D2925;
+      --muted: #59645F;
+      --outline: #D9E0DC;
+      --honey: #E4A12D;
+      --honey-deep: #9A5D00;
+      --honey-container: #FFE7B5;
+      --primary-container: #DCECE5;
+      --on-primary-container: #113A31;
+      --error: #B74336;
+      --ok: #2E7D32;
+      --shadow: 0 14px 32px rgba(23, 53, 46, 0.10);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --parchment: #0C1411;
+        --surface: #121B18;
+        --card: #15201C;
+        --ink: #9AD8C2;
+        --on-surface: #E5EEE9;
+        --muted: #BBC8C2;
+        --outline: #3B4843;
+        --honey: #F5C86A;
+        --honey-deep: #F5C86A;
+        --honey-container: #59400E;
+        --primary-container: #24483E;
+        --on-primary-container: #D8F3E9;
+        --error: #FFB4A9;
+        --ok: #7BD389;
+        --shadow: 0 14px 32px rgba(0, 0, 0, 0.35);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Roboto, system-ui, -apple-system, sans-serif;
+      background: var(--parchment);
+      color: var(--on-surface);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--honey-deep); }
+    .wrap { width: min(1080px, 100% - 40px); margin-inline: auto; }
+
+    header.top {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      padding: 18px 0;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
+    .brand img { width: 40px; height: 40px; border-radius: 12px; }
+    .brand strong { font-size: 22px; letter-spacing: -0.6px; font-weight: 800; }
+    .brand strong span { color: var(--honey-deep); }
+    nav a { margin-left: 18px; font-weight: 600; text-decoration: none; color: var(--muted); font-size: 14px; }
+    nav a:hover { color: var(--on-surface); }
+
+    .hero {
+      display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center;
+      padding: 40px 0 56px;
+    }
+    .eyebrow {
+      font-size: 11px; font-weight: 800; letter-spacing: 0.9px; text-transform: uppercase;
+      color: var(--honey-deep);
+    }
+    h1 { font-size: clamp(34px, 5vw, 54px); line-height: 1.05; letter-spacing: -1.3px; margin: 8px 0 14px; font-weight: 800; }
+    .lede { font-size: 18px; color: var(--muted); max-width: 52ch; margin: 0 0 26px; }
+
+    .download {
+      display: inline-flex; align-items: center; gap: 12px;
+      background: var(--ink); color: #fff; text-decoration: none;
+      padding: 16px 24px; border-radius: 16px; font-weight: 800; font-size: 17px;
+      box-shadow: var(--shadow); transition: transform .12s ease, opacity .12s ease;
+    }
+    @media (prefers-color-scheme: dark) { .download { color: #05372C; } }
+    .download:hover { transform: translateY(-1px); }
+    .download:active { transform: translateY(0); opacity: .9; }
+    .download svg { width: 22px; height: 22px; fill: currentColor; }
+    .meta { margin-top: 12px; font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 16px; }
+    .meta .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--primary-container); color: var(--on-primary-container);
+      padding: 4px 10px; border-radius: 999px; font-weight: 700; font-size: 12px; letter-spacing: .3px;
+    }
+    .meta .pill.warn { background: var(--honey-container); color: var(--honey-deep); }
+    .alt { margin-top: 14px; font-size: 14px; color: var(--muted); }
+
+    .qr-card {
+      background: var(--card); border: 1px solid var(--outline); border-radius: 20px;
+      padding: 18px; display: flex; gap: 18px; align-items: center; box-shadow: var(--shadow);
+      max-width: 420px; margin-top: 26px;
+    }
+    .qr-card #qr { width: 120px; height: 120px; flex: none; background: #fff; padding: 6px; border-radius: 10px; }
+    .qr-card #qr img, .qr-card #qr canvas { width: 108px !important; height: 108px !important; display: block; }
+    .qr-card p { margin: 0; font-size: 14px; color: var(--muted); }
+    .qr-card strong { display: block; color: var(--on-surface); margin-bottom: 4px; }
+
+    .phones { position: relative; display: flex; justify-content: center; gap: 18px; }
+    .phone {
+      width: min(230px, 42%); border-radius: 26px; overflow: hidden;
+      border: 1px solid var(--outline); background: var(--card); box-shadow: var(--shadow);
+    }
+    .phone img { display: block; width: 100%; height: auto; }
+    .phone.back { transform: translateY(36px); }
+
+    section { padding: 36px 0; }
+    section h2 { font-size: 26px; letter-spacing: -0.5px; margin: 0 0 6px; font-weight: 800; }
+    section .sub { color: var(--muted); margin: 0 0 22px; }
+
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+    .card {
+      background: var(--card); border: 1px solid var(--outline); border-radius: 20px; padding: 18px;
+    }
+    .card .n {
+      width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center;
+      background: var(--primary-container); color: var(--on-primary-container); font-weight: 800; margin-bottom: 12px;
+    }
+    .card h3 { margin: 0 0 6px; font-size: 16px; }
+    .card p { margin: 0; color: var(--muted); font-size: 14px; }
+    code { background: var(--primary-container); color: var(--on-primary-container); padding: 1px 6px; border-radius: 6px; font-size: 13px; white-space: nowrap; }
+
+    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 24px; padding: 0; margin: 0; list-style: none; }
+    .features li { display: flex; gap: 10px; align-items: flex-start; color: var(--muted); font-size: 15px; }
+    .features li::before { content: "✓"; color: var(--ok); font-weight: 800; }
+
+    .note {
+      display: flex; gap: 12px; align-items: flex-start;
+      background: var(--card); border: 1px solid var(--outline); border-radius: 14px; padding: 14px 16px;
+      color: var(--muted); font-size: 14px; margin-top: 18px;
+    }
+    .note b { color: var(--on-surface); }
+
+    footer { padding: 30px 0 50px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--outline); margin-top: 30px; }
+    footer a { margin-right: 16px; }
+
+    @media (max-width: 800px) {
+      .hero { grid-template-columns: 1fr; padding-top: 16px; }
+      .phones { order: -1; }
+      .phone.back { transform: translateY(24px); }
+      nav { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <a class="brand" href="#">
+        <img src="assets/icon.png" alt="" />
+        <strong>Quali<span>hive</span></strong>
+      </a>
+      <nav>
+        <a href="#install">Install</a>
+        <a href="#features">What it does</a>
+        <a href="#bluetooth">Bluetooth</a>
+        <a id="nav-repo" href="https://github.com/Sean-Brix/Qualihive">GitHub</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div>
+          <div class="eyebrow">Android · Honey Ko Bee Farm</div>
+          <h1>Honey quality,<br />clearly measured.</h1>
+          <p class="lede">
+            Qualihive connects to the honey filtration machine over Bluetooth, grades every
+            reading against the reference values, records each run as a traceable batch, and
+            exports the assessment report — all offline, on the phone.
+          </p>
+
+          <a id="download" class="download" href="https://github.com/Sean-Brix/Qualihive/releases/latest/download/qualihive-release.apk">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11.6l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6V3h2zM4 19h16v2H4z"/></svg>
+            Download APK for Android
+          </a>
+          <div class="meta">
+            <span class="pill" id="version">Checking latest release…</span>
+            <span id="size"></span>
+            <span id="date"></span>
+          </div>
+          <p class="alt">
+            Prefer a full changelog? <a id="releases" href="https://github.com/Sean-Brix/Qualihive/releases">All releases on GitHub</a>.
+          </p>
+
+          <div class="qr-card" id="qr-card">
+            <div id="qr" aria-label="QR code linking to the APK download"></div>
+            <p><strong>On a computer?</strong> Scan with the phone's camera to download straight to it.</p>
+          </div>
+        </div>
+
+        <div class="phones" aria-hidden="true">
+          <div class="phone back"><img src="assets/screen-signin.png" alt="" loading="lazy" /></div>
+          <div class="phone"><img src="assets/screen-home.png" alt="" loading="lazy" /></div>
+        </div>
+      </section>
+
+      <section id="install">
+        <h2>Install in four steps</h2>
+        <p class="sub">The APK is installed directly, outside the Play Store, so Android asks once for permission.</p>
+        <div class="cards">
+          <div class="card"><div class="n">1</div><h3>Download</h3><p>Tap the button above on the phone, or scan the QR code. The file is <code>qualihive-release.apk</code>.</p></div>
+          <div class="card"><div class="n">2</div><h3>Open the file</h3><p>Pull down the notification or open <b>Files → Downloads</b> and tap the APK.</p></div>
+          <div class="card"><div class="n">3</div><h3>Allow the install</h3><p>If asked, allow <b>Install unknown apps</b> for your browser or Files app, then go back and tap <b>Install</b>.</p></div>
+          <div class="card"><div class="n">4</div><h3>Create your account</h3><p>Open Qualihive and set up the local account that owns the batch records. Nothing leaves the phone.</p></div>
+        </div>
+        <div class="note">
+          <span>ⓘ</span>
+          <div><b>Requirements:</b> Android 7.0 or newer, 64-bit (any phone from about 2017 on), with Bluetooth Low Energy. Updating later is the same: download the new APK and install over the old one — your data stays.</div>
+        </div>
+      </section>
+
+      <section id="features">
+        <h2>What it does</h2>
+        <p class="sub">Built around the four questions a beekeeper asks at the machine.</p>
+        <ul class="features">
+          <li>Live digital twin of the machine: stage, pumps, filters, jar level</li>
+          <li>Every parameter graded: pH, moisture, conductivity, colour, temperature, turbidity</li>
+          <li>Three-level result — per parameter, overall, and what to do with the batch</li>
+          <li>Automatic batches with a frozen verdict and traceable <code>QH-YYYY-NNNN</code> codes</li>
+          <li>History, statistics and trends across batches</li>
+          <li>Editable reference values with provisional ranges clearly marked</li>
+          <li>Notifications for out-of-range readings, sensor faults and disconnections</li>
+          <li>PDF quality reports and CSV exports, shared from the phone</li>
+          <li>Offline by design — accounts and records stay on the device</li>
+          <li>Built-in simulator for demos when the machine is not around</li>
+        </ul>
+      </section>
+
+      <section id="bluetooth">
+        <h2>Connecting to the machine</h2>
+        <p class="sub">The app speaks to the ESP32 over the Nordic UART service.</p>
+        <div class="cards">
+          <div class="card"><div class="n">1</div><h3>Turn on Bluetooth</h3><p>Open <b>More → Machine connection</b>, keep <b>Bluetooth device</b> selected and tap <b>Scan for devices</b>. Allow the <b>Nearby devices</b> prompt.</p></div>
+          <div class="card"><div class="n">2</div><h3>Pick the machine</h3><p>Tap it in the <b>Found</b> list. The pill in the corner turns green once the link is up.</p></div>
+          <div class="card"><div class="n">3</div><h3>Run a batch</h3><p>A batch opens on its own when the machine starts a cycle. If the firmware sends no stage, tap <b>Start</b> on Home.</p></div>
+          <div class="card"><div class="n">?</div><h3>No machine nearby?</h3><p>Switch the source to <b>Simulator</b>, or load sample data from <b>More</b>, to walk through every screen.</p></div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <a id="foot-repo" href="https://github.com/Sean-Brix/Qualihive">Source on GitHub</a>
+      <a id="foot-releases" href="https://github.com/Sean-Brix/Qualihive/releases">Releases</a>
+      <span>Qualihive assesses honey against configured reference values; it is not a statement of authenticity or purity and does not replace laboratory testing.</span>
+    </footer>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    (function () {
+      // Edit these two values if the repository moves.
+      const OWNER = 'Sean-Brix';
+      const REPO = 'Qualihive';
+      const ASSET = 'qualihive-release.apk';
+
+      const repoUrl = `https://github.com/${OWNER}/${REPO}`;
+      const latestUrl = `${repoUrl}/releases/latest/download/${ASSET}`;
+      const download = document.getElementById('download');
+      download.href = latestUrl;
+      for (const id of ['nav-repo', 'foot-repo']) document.getElementById(id).href = repoUrl;
+      for (const id of ['releases', 'foot-releases']) document.getElementById(id).href = `${repoUrl}/releases`;
+
+      // QR code for the download link, so a phone can grab it from a desktop screen.
+      try {
+        if (window.QRCode) {
+          new QRCode(document.getElementById('qr'), { text: latestUrl, width: 108, height: 108, correctLevel: QRCode.CorrectLevel.M });
+        } else {
+          document.getElementById('qr-card').hidden = true;
+        }
+      } catch (_) {
+        document.getElementById('qr-card').hidden = true;
+      }
+
+      // Version, size and date from the latest GitHub release. Falls back
+      // gracefully when there is no release yet or the API is rate-limited.
+      const version = document.getElementById('version');
+      const size = document.getElementById('size');
+      const date = document.getElementById('date');
+      const mb = (bytes) => `${(bytes / 1048576).toFixed(0)} MB`;
+
+      fetch(`https://api.github.com/repos/${OWNER}/${REPO}/releases/latest`, { headers: { Accept: 'application/vnd.github+json' } })
+        .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+        .then((release) => {
+          const asset = (release.assets || []).find((a) => a.name === ASSET) || (release.assets || [])[0];
+          version.textContent = release.tag_name || release.name || 'Latest';
+          if (asset) {
+            download.href = asset.browser_download_url;
+            size.textContent = mb(asset.size);
+          }
+          if (release.published_at) {
+            date.textContent = new Date(release.published_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+          }
+        })
+        .catch((status) => {
+          if (status === 404) {
+            version.textContent = 'No release published yet';
+            version.classList.add('warn');
+          } else {
+            version.textContent = 'Latest release';
+          }
+        });
+    })();
+  </script>
+</body>
+</html>
