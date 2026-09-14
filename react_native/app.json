@@ -1,0 +1,71 @@
+{
+  "expo": {
+    "name": "Qualihive",
+    "slug": "qualihive",
+    "version": "1.0.0",
+    "scheme": "qualihive",
+    "orientation": "portrait",
+    "icon": "./assets/branding/qualihive_app_icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "backgroundColor": "#FAF5E9",
+    "splash": {
+      "image": "./assets/branding/launch_image.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0C201C"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.honeyko.qualihive",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "Qualihive connects to the honey filtration machine over Bluetooth LE to receive sensor readings.",
+        "NSBluetoothPeripheralUsageDescription": "Qualihive connects to the honey filtration machine over Bluetooth LE to receive sensor readings.",
+        "UIBackgroundModes": ["bluetooth-central"]
+      }
+    },
+    "android": {
+      "package": "com.honeyko.qualihive",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/branding/ic_launcher_foreground.png",
+        "backgroundColor": "#0C201C"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      "expo-sharing",
+      "expo-image",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/branding/launch_image.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#0C201C",
+          "dark": {
+            "backgroundColor": "#0C201C"
+          }
+        }
+      ],
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": false,
+          "neverForLocation": true,
+          "modes": ["central"],
+          "bluetoothAlwaysPermission": "Qualihive connects to the honey filtration machine over Bluetooth LE to receive sensor readings."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="500" viewBox="0 0 1200 500">
+  <defs>
+    <!-- Cleaner/lighter honey tone for final filtration stage -->
+    <linearGradient id="honeyStage3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffe59a" stop-opacity="0.22"/>
+      <stop offset="48%" stop-color="#f0c96b" stop-opacity="0.34"/>
+      <stop offset="100%" stop-color="#d6a642" stop-opacity="0.42"/>
+    </linearGradient>
+
+    <!-- Fine filtration pattern -->
+    <pattern id="fineMesh" width="5" height="5" patternUnits="userSpaceOnUse">
+      <path d="M0 2.5 H5 M2.5 0 V5"
+            stroke="#8d826d"
+            stroke-width="0.55"
+            stroke-opacity="0.34"/>
+    </pattern>
+
+    <clipPath id="filter3Clip">
+      <rect x="714" y="158" width="72" height="108" rx="5"/>
+    </clipPath>
+
+    <filter id="softGlow3" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1.8"/>
+    </filter>
+  </defs>
+
+  <!--
+    ASSET 06: Filter 3 processing/media overlay
+    Shared master canvas/viewBox: 1200 x 500
+
+    Native inner area:
+      x=714, y=158, width=72, height=108
+
+    Intended meaning:
+      Final / fine filtration is actively processing honey.
+
+    Visual intent:
+      Finer, cleaner, lighter than Filter 1 and Filter 2.
+
+    Recommended Flutter controls:
+      - opacity 0.0 when inactive
+      - opacity 0.75-1.0 when active
+      - optional highlight sweep from top to bottom
+      - optional very subtle shimmer, 2-3 px only
+      - keep housing static
+
+    Render ABOVE machine_base.svg.
+  -->
+
+  <g id="filter3_processing" clip-path="url(#filter3Clip)">
+    <!-- Clean honey tint -->
+    <rect x="714" y="158" width="72" height="108" fill="url(#honeyStage3)"/>
+
+    <!-- Fine mesh -->
+    <rect x="718" y="163" width="64" height="98" rx="4"
+          fill="url(#fineMesh)"
+          opacity="0.82"/>
+
+    <!-- Bright refinement band -->
+    <path d="M718 186
+             C736 181, 757 181, 782 187
+             L782 203
+             C759 198, 738 198, 718 204 Z"
+          fill="#fff4c4"
+          fill-opacity="0.34"
+          filter="url(#softGlow3)"/>
+
+    <!-- Cleaner lower region -->
+    <rect x="717" y="226" width="66" height="36" rx="4"
+          fill="#fff2bd"
+          fill-opacity="0.18"/>
+
+    <!-- Top sheen -->
+    <rect x="720" y="162" width="60" height="4" rx="2"
+          fill="#fffdf2"
+          fill-opacity="0.42"/>
+
+    <!-- subtle vertical clarity streak -->
+    <rect x="770" y="168" width="5" height="84" rx="2.5"
+          fill="#ffffff"
+          fill-opacity="0.10"/>
+  </g>
+</svg>

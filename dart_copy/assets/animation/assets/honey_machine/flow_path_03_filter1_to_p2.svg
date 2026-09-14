@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200"
+     height="500"
+     viewBox="0 0 1200 500">
+  <defs>
+    <filter id="internalFlowGlow" x="-60%" y="-50%" width="220%" height="200%">
+      <feGaussianBlur stdDeviation="2.0"/>
+    </filter>
+  </defs>
+
+  <!--
+    ASSET 13 — FLOW PATH 03: FILTER 1 → P2
+
+    MASTER CANVAS
+      viewBox: 0 0 1200 500
+
+    CLASSIFICATION
+      conceptual_internal_transfer
+
+    WHY THIS ROUTE IS DIFFERENT
+      The current machine_base.svg and the supplied engineering reference do
+      not show a clearly exposed pipe between Filter 1 and Pump 2.
+      Filter 1 and P2 overlap in the app illustration. Therefore this overlay
+      visualizes the process transition through the hidden/short connection.
+      It must NOT be interpreted as a fabrication drawing or physical tube
+      dimension.
+
+    EXACT APP ANCHORS
+      Filter 1 media bottom-center: (410.0, 266.0)
+      Filter 1 housing bottom:       (410.0, 300.0)
+      P2 conceptual inlet:           (440.0, 335.0)
+
+    PATH
+      M 410 266 V 300 C 410 320 420 335 440 335
+
+    APPROXIMATE PATH LENGTH
+      86.111px
+
+    ANIMATION
+      strokeDasharray = "9.0 8.0"
+      dash period = 17.0px
+      animate dash offset 0 → -17.0
+      recommended duration 500–850 ms.
+
+    VISUAL RULE
+      This route is intentionally slightly thinner than exposed pipe flow
+      because it represents an internal/hidden transfer.
+
+    TYPICAL ACTIVATION
+      running && filter1Processing && pump2
+
+    STACK ORDER
+      machine_base.svg
+      filter1_processing_overlay.svg
+      flow_path_03_filter1_to_p2.svg
+      pump2 rotor/glow
+      status overlays
+  -->
+
+  <g id="flow_path_03_filter1_to_p2">
+    <!-- Soft internal transfer glow -->
+    <path d="M 410 266 V 300 C 410 320 420 335 440 335"
+          fill="none"
+          stroke="#D98D1D"
+          stroke-width="7.4"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-opacity="0.18"
+          filter="url(#internalFlowGlow)"/>
+
+    <!-- Main moving honey -->
+    <path id="flow_dashes"
+          d="M 410 266 V 300 C 410 320 420 335 440 335"
+          fill="none"
+          stroke="#E7A12A"
+          stroke-width="4.4"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-dasharray="9.0 8.0"
+          stroke-dashoffset="0"
+          opacity="0.92"/>
+
+    <!-- Warm specular highlight -->
+    <path d="M 410 266 V 300 C 410 320 420 335 440 335"
+          fill="none"
+          stroke="#FFD975"
+          stroke-width="1.10"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-dasharray="9.0 8.0"
+          stroke-dashoffset="-1.2"
+          opacity="0.66"/>
+
+    <!-- Hidden anchor markers -->
+    <circle cx="410.0" cy="266.0" r="2"
+            fill="#FFD975" opacity="0"/>
+    <circle cx="440.0" cy="335.0" r="2"
+            fill="#FFD975" opacity="0"/>
+  </g>
+</svg>

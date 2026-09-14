@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="500" viewBox="0 0 1200 500">
+  <defs>
+    <!-- Soft green operational glow -->
+    <radialGradient id="activeGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#59d97d" stop-opacity="0.62"/>
+      <stop offset="45%" stop-color="#3fc56a" stop-opacity="0.34"/>
+      <stop offset="75%" stop-color="#2fad59" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#2fad59" stop-opacity="0"/>
+    </radialGradient>
+
+    <filter id="blurGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+  </defs>
+
+  <!--
+    ASSET 03: Reusable pump active glow overlay
+    Shared master canvas/viewBox: 1200 x 500
+
+    Native reference position: P1
+    Center: (303, 338)
+
+    Reuse translations:
+      P1: Offset(0, 0)
+      P2: Offset(170, 0)
+      P3: Offset(340, 0)
+      P4: Offset(510, 0)
+
+    Recommended Flutter animation:
+      opacity: 0.25 -> 0.75 -> 0.25
+      scale:   0.96 -> 1.06 -> 0.96
+      duration: 900-1200 ms
+      repeat while pump is active
+
+    Place this layer BEHIND the pump body.
+  -->
+
+  <g id="pump_glow" transform="translate(303 338)">
+    <!-- diffuse outer glow -->
+    <ellipse
+      cx="0" cy="0"
+      rx="54" ry="82"
+      fill="url(#activeGlow)"
+      filter="url(#blurGlow)"
+      opacity="0.92"/>
+
+    <!-- tighter halo helps it remain visible on bright backgrounds -->
+    <ellipse
+      cx="0" cy="0"
+      rx="42" ry="68"
+      fill="none"
+      stroke="#49cf70"
+      stroke-width="3"
+      stroke-opacity="0.34"/>
+  </g>
+</svg>

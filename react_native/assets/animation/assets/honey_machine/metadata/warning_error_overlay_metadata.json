@@ -1,0 +1,134 @@
+{
+  "asset_id": 23,
+  "filename": "honey_machine_asset_23_warning_error_overlay.svg",
+  "purpose": "High-priority warning/error overlay for machine faults and abnormal process conditions",
+  "master_viewbox": [
+    0,
+    0,
+    1200,
+    500
+  ],
+  "registration": {
+    "control_box": {
+      "x": 920.0,
+      "y": 110.0,
+      "w": 185.0,
+      "h": 190.0
+    },
+    "display": {
+      "x": 948.0,
+      "y": 138.0,
+      "w": 84.0,
+      "h": 62.0,
+      "center": [
+        990.0,
+        169.0
+      ]
+    },
+    "fault_status_slot": {
+      "x": 1060.0,
+      "y": 160.0,
+      "w": 22.0,
+      "h": 12.0,
+      "rx": 4.0,
+      "center": [
+        1071.0,
+        166.0
+      ],
+      "assignment": "middle control-panel status indicator"
+    }
+  },
+  "warning_triangle": {
+    "points": [
+      [
+        990.0,
+        146.0
+      ],
+      [
+        1014.0,
+        190.0
+      ],
+      [
+        966.0,
+        190.0
+      ]
+    ],
+    "center_reference": [
+      990.0,
+      169.0
+    ]
+  },
+  "severity_modes": {
+    "warning": {
+      "recommended_color": "amber/orange as supplied",
+      "halo_opacity_range": [
+        0.18,
+        0.42,
+        0.18
+      ],
+      "duration_ms_range": [
+        1200,
+        1800
+      ],
+      "process_may_continue": "depends on application rules"
+    },
+    "critical_error": {
+      "recommended_color": "red tint/color filter in Flutter",
+      "halo_opacity_range": [
+        0.3,
+        0.72,
+        0.3
+      ],
+      "duration_ms_range": [
+        700,
+        1100
+      ],
+      "process_behavior": "stop affected process animations/actuators if system logic requires"
+    }
+  },
+  "example_conditions": [
+    "sensor failure",
+    "sensor value outside allowed process range",
+    "pump stall",
+    "motor/actuator fault",
+    "output jar full",
+    "output jar overweight",
+    "abnormal temperature",
+    "emergency stop",
+    "system fault"
+  ],
+  "text_rendering": {
+    "method": "Flutter text/widget overlay, not baked into SVG",
+    "recommended_location": "control display area",
+    "examples": [
+      "P2 STALL",
+      "PH SENSOR ERROR",
+      "JAR FULL",
+      "TEMP HIGH"
+    ]
+  },
+  "priority": {
+    "level": "highest_core_overlay",
+    "higher_than_assets": [
+      19,
+      20,
+      21,
+      22
+    ]
+  },
+  "flutter_notes": [
+    "Render in the same 1200x500 logical coordinate space as machine_base.svg.",
+    "Do not independently reposition the asset.",
+    "Use the middle status indicator slot for warning/error consistently.",
+    "Render human-readable fault text separately in Flutter.",
+    "For critical errors, a ColorFiltered red version of this asset is acceptable.",
+    "Avoid rapid flashing; use controlled pulsing.",
+    "If an affected component is known, also highlight that component using Flutter/local glow, while keeping this control-panel warning visible."
+  ],
+  "stack_order": [
+    "machine_base.svg",
+    "normal process overlays",
+    "warning_error_overlay.svg",
+    "Flutter fault text/modal"
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "asset_id": 10,
+  "filename": "honey_machine_asset_10_output_jar_surface_wave.svg",
+  "purpose": "Dynamic honey surface/meniscus in output jar",
+  "master_viewbox": [
+    0,
+    0,
+    1200,
+    500
+  ],
+  "reference_surface_y": 373.0,
+  "fixed_external_clip_path_d": "M 978 318 H 1042 L 1037.5 362.5 Q 1036.5 373 1026 373 H 994 Q 983.5 373 982.5 362.5 Z",
+  "capacity_grams": 1000.0,
+  "weight_mapping": {
+    "net_weight_formula": "max(0, rawLoadCellGrams - tareGrams)",
+    "jar_level_formula": "clamp(netWeightGrams / 1000, 0.0, 1.0)",
+    "surface_y_formula": "373.0 - (55.0 * jarLevel)",
+    "translate_y_formula": "-(55.0 * jarLevel)",
+    "examples": {
+      "0g": {
+        "level": 0.0,
+        "surface_y": 373.0
+      },
+      "250g": {
+        "level": 0.25,
+        "surface_y": 359.25
+      },
+      "500g": {
+        "level": 0.5,
+        "surface_y": 345.5
+      },
+      "750g": {
+        "level": 0.75,
+        "surface_y": 331.75
+      },
+      "1000g": {
+        "level": 1.0,
+        "surface_y": 318.0
+      }
+    }
+  },
+  "wave": {
+    "x_start": 960.0,
+    "x_end": 1060.0,
+    "period_px": 18.0,
+    "amplitude_px": 1.6,
+    "recommended_horizontal_animation": {
+      "translate_x_from": 0.0,
+      "translate_x_to": -18.0,
+      "duration_ms_range": [
+        1800,
+        2600
+      ],
+      "repeat": true
+    }
+  },
+  "visibility": {
+    "hide_at_or_below_level": 0.01,
+    "recommended_fade_range": [
+      0.01,
+      0.05
+    ]
+  },
+  "flutter_notes": [
+    "Keep the jar ClipPath fixed.",
+    "Translate only this SVG vertically by -55 * jarLevel.",
+    "Animate horizontal translateX independently from 0 to -18 px for a seamless loop.",
+    "Do not vertically scale the surface SVG.",
+    "Use net/tared load-cell weight.",
+    "Clamp jarLevel to 0.0..1.0.",
+    "At >1000 g keep the surface at full and trigger a separate overcapacity warning."
+  ],
+  "stack_order": [
+    "machine_base.svg",
+    "output_jar_honey_fill.svg",
+    "output_jar_surface_wave.svg",
+    "warning/status overlays"
+  ]
+}

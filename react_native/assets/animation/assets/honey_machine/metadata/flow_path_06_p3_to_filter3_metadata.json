@@ -1,0 +1,127 @@
+{
+  "asset_id": 16,
+  "filename": "honey_machine_asset_16_flow_path_06_p3_to_filter3.svg",
+  "route_id": "p3_to_filter3",
+  "route_sequence_index": 6,
+  "route_classification": "exact_exposed_pipe",
+  "purpose": "Independent animated honey flow overlay from Pump 3 outlet to Filter 3 inlet.",
+  "master_viewbox": [
+    0,
+    0,
+    1200,
+    500
+  ],
+  "path": {
+    "svg_d": "M 675 335 H 730 V 315 H 765",
+    "start": [
+      675.0,
+      335.0
+    ],
+    "end": [
+      765.0,
+      315.0
+    ],
+    "corners": [
+      [
+        730.0,
+        335.0
+      ],
+      [
+        730.0,
+        315.0
+      ]
+    ],
+    "segments": [
+      {
+        "from": [
+          675.0,
+          335.0
+        ],
+        "to": [
+          730.0,
+          335.0
+        ],
+        "length_px": 55.0,
+        "direction": "right"
+      },
+      {
+        "from": [
+          730.0,
+          335.0
+        ],
+        "to": [
+          730.0,
+          315.0
+        ],
+        "length_px": 20.0,
+        "direction": "up"
+      },
+      {
+        "from": [
+          730.0,
+          315.0
+        ],
+        "to": [
+          765.0,
+          315.0
+        ],
+        "length_px": 35.0,
+        "direction": "right"
+      }
+    ],
+    "total_length_px": 110.0,
+    "segment_boundaries_px": [
+      55.0,
+      75.0,
+      110.0
+    ]
+  },
+  "visual": {
+    "base_pipe_outer_stroke_px": 16.0,
+    "base_pipe_inner_stroke_px": 8.0,
+    "main_stroke_width_px": 4.8,
+    "glow_stroke_width_px": 8.0,
+    "dash_array": [
+      11.0,
+      9.0
+    ],
+    "dash_period_px": 20.0,
+    "main_color": "#E8A62D",
+    "highlight_color": "#FFD974",
+    "glow_color": "#E49A23"
+  },
+  "animation": {
+    "direction": "p3_to_filter3",
+    "stroke_dashoffset_from": 0.0,
+    "stroke_dashoffset_to": -20.0,
+    "duration_ms_range": [
+      650,
+      1000
+    ],
+    "repeat": true,
+    "active_condition_example": "running && pump3 && allowFlowToFilter3"
+  },
+  "flutter_pathmetric_notes": [
+    "Use the exact SVG path in the shared 1200x500 coordinate space.",
+    "Path distance 0\u201355 px: first horizontal section.",
+    "Path distance 55\u201375 px: vertical rise.",
+    "Path distance 75\u2013110 px: final horizontal section into Filter 3.",
+    "Scale with the whole machine scene; do not position or scale this route independently.",
+    "Fade out when inactive instead of freezing dashes."
+  ],
+  "consistency_reference": {
+    "matches_assets": [
+      12,
+      14
+    ],
+    "horizontal_translation_from_asset_14_px": 170.0,
+    "note": "P3\u2192Filter3 repeats the same exposed-pipe geometry used for P2\u2192Filter2."
+  },
+  "stack_order": [
+    "machine_base.svg",
+    "flow_path_06_p3_to_filter3.svg",
+    "filter3_processing_overlay.svg",
+    "pump3 rotor/glow",
+    "status overlays"
+  ]
+}

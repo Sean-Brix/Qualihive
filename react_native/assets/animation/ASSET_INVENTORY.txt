@@ -1,0 +1,31 @@
+Honey Filtration Machine Flutter Asset Pack
+===========================================
+
+Core SVG assets: 23
+Metadata files: 17
+Preview/reference images: 63
+
+Runtime SVGs:
+- machine_base.svg
+- pump_rotor.svg
+- pump_glow.svg
+- filter1_processing_overlay.svg
+- filter2_processing_overlay.svg
+- filter3_processing_overlay.svg
+- hopper_honey_fill.svg
+- hopper_surface_wave.svg
+- output_jar_honey_fill.svg
+- output_jar_surface_wave.svg
+- flow_path_01_hopper_to_p1.svg
+- flow_path_02_p1_to_filter1.svg
+- flow_path_03_filter1_to_p2.svg
+- flow_path_04_p2_to_filter2.svg
+- flow_path_05_filter2_to_p3.svg
+- flow_path_06_p3_to_filter3.svg
+- flow_path_07_filter3_to_p4.svg
+- flow_path_08_p4_to_output_jar.svg
+- start_button_active.svg
+- stop_button_active.svg
+- online_connected_status.svg
+- offline_disconnected_status.svg
+- warning_error_overlay.svg

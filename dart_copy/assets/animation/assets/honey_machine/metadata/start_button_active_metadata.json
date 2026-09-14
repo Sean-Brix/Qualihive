@@ -1,0 +1,68 @@
+{
+  "asset_id": 19,
+  "filename": "honey_machine_asset_19_start_button_active.svg",
+  "purpose": "Active/pressed visual overlay for the physical START button on the control panel",
+  "master_viewbox": [
+    0,
+    0,
+    1200,
+    500
+  ],
+  "registration": {
+    "center": [
+      966.0,
+      232.0
+    ],
+    "base_button_radius_px": 13.0,
+    "source": "Asset 01 machine_base.svg"
+  },
+  "geometry": {
+    "pressed_face_radius_px": 12.2,
+    "inner_ring_radius_px": 13.8,
+    "outer_ring_radius_px": 18.0,
+    "glow_radius_px": 25.0
+  },
+  "states": {
+    "idle": {
+      "visible": false
+    },
+    "pressed_ack": {
+      "visible": true,
+      "local_scale_from": 0.94,
+      "local_scale_to": 1.0,
+      "duration_ms_range": [
+        120,
+        180
+      ],
+      "pivot": [
+        966.0,
+        232.0
+      ]
+    },
+    "running_latched": {
+      "visible": true,
+      "pulse_outer_glow_opacity": [
+        0.25,
+        0.7,
+        0.25
+      ],
+      "duration_ms_range": [
+        900,
+        1300
+      ],
+      "repeat": true
+    }
+  },
+  "flutter_notes": [
+    "Render in the same 1200x500 scene coordinate system as machine_base.svg.",
+    "Do not reposition the asset; it is already aligned to the START button.",
+    "For press animation, transform only the local button group around center (966,232).",
+    "Recommended visibility condition: running || startAcknowledged.",
+    "If a warning/error state is active, warning overlays should visually take priority."
+  ],
+  "stack_order": [
+    "machine_base.svg",
+    "start_button_active.svg",
+    "warning/status overlays"
+  ]
+}

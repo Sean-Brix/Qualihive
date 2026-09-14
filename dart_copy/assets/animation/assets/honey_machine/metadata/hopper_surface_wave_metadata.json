@@ -1,0 +1,98 @@
+{
+  "asset_id": 8,
+  "filename": "honey_machine_asset_08_hopper_surface_wave.svg",
+  "purpose": "Dynamic honey surface/meniscus inside hopper",
+  "master_viewbox": [
+    0,
+    0,
+    1200,
+    500
+  ],
+  "reference_surface_y": 198.0,
+  "wave": {
+    "x_start": 72.0,
+    "x_end": 268.0,
+    "period_px": 24.0,
+    "amplitude_px": 2.4,
+    "recommended_horizontal_animation": {
+      "translate_x_from": 0.0,
+      "translate_x_to": -24.0,
+      "duration_ms_range": [
+        1600,
+        2400
+      ],
+      "repeat": true
+    }
+  },
+  "fixed_external_clip_polygon": [
+    [
+      98.0,
+      118.0
+    ],
+    [
+      242.0,
+      118.0
+    ],
+    [
+      222.5,
+      198.0
+    ],
+    [
+      117.5,
+      198.0
+    ]
+  ],
+  "level_mapping": {
+    "input_range": [
+      0.0,
+      1.0
+    ],
+    "surface_y_formula": "198.0 - (80.0 * hopperLevel)",
+    "translate_y_formula": "-(80.0 * hopperLevel)",
+    "surface_width_formula_px": "105 + (39 * hopperLevel)",
+    "examples": {
+      "0.00": {
+        "surface_y": 198.0,
+        "surface_width": 105.0
+      },
+      "0.25": {
+        "surface_y": 178.0,
+        "surface_width": 114.75
+      },
+      "0.50": {
+        "surface_y": 158.0,
+        "surface_width": 124.5
+      },
+      "0.75": {
+        "surface_y": 138.0,
+        "surface_width": 134.25
+      },
+      "1.00": {
+        "surface_y": 118.0,
+        "surface_width": 144.0
+      }
+    }
+  },
+  "visibility": {
+    "hide_at_or_below": 0.01,
+    "recommended_fade_range": [
+      0.01,
+      0.05
+    ]
+  },
+  "flutter_implementation_notes": [
+    "Do not move the hopper clip with the surface asset.",
+    "Use a fixed HopperClipper around the child.",
+    "Translate only the surface SVG inside that fixed ClipPath.",
+    "Vertical translation is -80 * hopperLevel.",
+    "Horizontal looping translation may run independently from vertical level.",
+    "Clamp hopperLevel to 0.0..1.0.",
+    "Do not scale the SVG vertically."
+  ],
+  "stack_order": [
+    "machine_base.svg",
+    "hopper_honey_fill.svg",
+    "hopper_surface_wave.svg",
+    "status overlays"
+  ]
+}
