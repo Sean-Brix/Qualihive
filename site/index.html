@@ -183,18 +183,15 @@
             offline, on the phone.
           </p>
 
-          <a id="download" class="download" href="https://github.com/Sean-Brix/Qualihive/releases/latest/download/qualihive-release.apk">
+          <a id="download" class="download" href="qualihive-release.apk" download>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11.6l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6V3h2zM4 19h16v2H4z"/></svg>
             Download APK for Android
           </a>
           <div class="meta">
-            <span class="pill" id="version">Checking latest release…</span>
+            <span class="pill" id="version">v1.3.6</span>
             <span id="size"></span>
             <span id="date"></span>
           </div>
-          <p class="alt">
-            Prefer a full changelog? <a id="releases" href="https://github.com/Sean-Brix/Qualihive/releases">All releases on GitHub</a>.
-          </p>
 
           <div class="qr-card" id="qr-card">
             <div id="qr" aria-label="QR code linking to the APK download"></div>
@@ -253,7 +250,6 @@
 
     <footer>
       <a id="foot-repo" href="https://github.com/Sean-Brix/Qualihive">Source on GitHub</a>
-      <a id="foot-releases" href="https://github.com/Sean-Brix/Qualihive/releases">Releases</a>
       <span>Qualihive assesses honey against configured reference values; it is not a statement of authenticity or purity and does not replace laboratory testing.</span>
     </footer>
   </div>
@@ -261,22 +257,16 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script>
     (function () {
-      // Edit these two values if the repository moves.
-      const OWNER = 'Sean-Brix';
-      const REPO = 'Qualihive';
-      const ASSET = 'qualihive-release.apk';
-
-      const repoUrl = `https://github.com/${OWNER}/${REPO}`;
-      const latestUrl = `${repoUrl}/releases/latest/download/${ASSET}`;
-      const download = document.getElementById('download');
-      download.href = latestUrl;
+      // The APK is served next to this page (site/qualihive-release.apk).
+      // To ship a new build, replace that file and bump the version pill.
+      const repoUrl = 'https://github.com/Sean-Brix/Qualihive';
+      const apkUrl = new URL('qualihive-release.apk', location.href).href;
       for (const id of ['nav-repo', 'foot-repo']) document.getElementById(id).href = repoUrl;
-      for (const id of ['releases', 'foot-releases']) document.getElementById(id).href = `${repoUrl}/releases`;
 
       // QR code for the download link, so a phone can grab it from a desktop screen.
       try {
         if (window.QRCode) {
-          new QRCode(document.getElementById('qr'), { text: latestUrl, width: 108, height: 108, correctLevel: QRCode.CorrectLevel.M });
+          new QRCode(document.getElementById('qr'), { text: apkUrl, width: 108, height: 108, correctLevel: QRCode.CorrectLevel.M });
         } else {
           document.getElementById('qr-card').hidden = true;
         }
@@ -284,34 +274,23 @@
         document.getElementById('qr-card').hidden = true;
       }
 
-      // Version, size and date from the latest GitHub release. Falls back
-      // gracefully when there is no release yet or the API is rate-limited.
-      const version = document.getElementById('version');
+      // Size and date from the APK's response headers; left blank if the
+      // server does not send them.
       const size = document.getElementById('size');
       const date = document.getElementById('date');
       const mb = (bytes) => `${(bytes / 1048576).toFixed(0)} MB`;
 
-      fetch(`https://api.github.com/repos/${OWNER}/${REPO}/releases/latest`, { headers: { Accept: 'application/vnd.github+json' } })
-        .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-        .then((release) => {
-          const asset = (release.assets || []).find((a) => a.name === ASSET) || (release.assets || [])[0];
-          version.textContent = release.tag_name || release.name || 'Latest';
-          if (asset) {
-            download.href = asset.browser_download_url;
-            size.textContent = mb(asset.size);
-          }
-          if (release.published_at) {
-            date.textContent = new Date(release.published_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+      fetch(apkUrl, { method: 'HEAD', cache: 'no-cache' })
+        .then((r) => {
+          if (!r.ok) return;
+          const length = Number(r.headers.get('content-length'));
+          if (length) size.textContent = mb(length);
+          const modified = r.headers.get('last-modified');
+          if (modified) {
+            date.textContent = new Date(modified).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
           }
         })
-        .catch((status) => {
-          if (status === 404) {
-            version.textContent = 'No release published yet';
-            version.classList.add('warn');
-          } else {
-            version.textContent = 'Latest release';
-          }
-        });
+        .catch(() => {});
     })();
   </script>
 </body>
