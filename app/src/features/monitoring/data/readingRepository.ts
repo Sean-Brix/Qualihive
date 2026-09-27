@@ -15,8 +15,6 @@ import { makeReading, type SensorReading } from '../domain/sensorReading';
 export interface ReadingRepository {
   getForBatch(batchCode: string): Promise<SensorReading[]>;
   getAll(): Promise<SensorReading[]>;
-  /** Newest first, for exports that should not pull the whole table. */
-  getRecent(limit?: number): Promise<SensorReading[]>;
   count(): Promise<number>;
   save(reading: SensorReading): Promise<number>;
   delete(id: number): Promise<void>;
@@ -123,11 +121,6 @@ export class DrizzleReadingRepository implements ReadingRepository {
 
   async getAll(): Promise<SensorReading[]> {
     const rows = await this.db.select().from(readings);
-    return rows.map(readingFromRow);
-  }
-
-  async getRecent(limit = 1000): Promise<SensorReading[]> {
-    const rows = await readingQueries.recent(this.db, limit);
     return rows.map(readingFromRow);
   }
 

@@ -41,7 +41,7 @@ export function AboutScreen() {
 
         <Section
           title="What this app does"
-          body="Qualihive is the companion application for an Arduino-based honey filtration machine with quality assessment. It connects to the machine over Bluetooth, receives sensor readings and machine status, interprets the readings against configured quality reference values, records each filtration session as a batch, and produces exportable assessment reports."
+          body="Qualihive is the companion application for an Arduino-based honey filtration machine with quality assessment. It connects to the machine over Bluetooth, receives sensor readings and machine status, interprets the readings against configured quality reference values, and records each filtration session as a batch."
         />
         <Section
           title="What it does not do"
@@ -49,7 +49,7 @@ export function AboutScreen() {
         />
         <Section
           title="Offline by design"
-          body="Accounts, batch records, readings and notifications are stored in a local database on this device. Nothing is sent to a server, which also means nothing is backed up: exporting a report or CSV is the only way to get data off the phone."
+          body="Accounts, batch records, readings and notifications are stored in a local database on this device. Nothing is sent to a server, which also means nothing is backed up."
         />
 
         <Text variant="labelSmall" color={scheme.primary} weight="700" letterSpacing={0.8} style={{ marginTop: 8 }}>
@@ -76,7 +76,7 @@ export function AboutScreen() {
 
         <Section
           title="Project"
-          body="Arduino-Based Honey Filtration with Quality Assessment System for Honey Ko Bee Farm. The filtration machine handles the physical processing and sensing; this application handles presentation, assessment rules, batch history, alerts and reporting."
+          body="Arduino-Based Honey Filtration with Quality Assessment System for Honey Ko Bee Farm. The filtration machine handles the physical processing and sensing; this application handles presentation, assessment rules, batch history and alerts."
         />
       </ScrollView>
     </Screen>

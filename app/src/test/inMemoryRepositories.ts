@@ -24,10 +24,6 @@ export class InMemoryReadingRepository implements ReadingRepository {
     return [...this.rows];
   }
 
-  async getRecent(limit = 1000): Promise<SensorReading[]> {
-    return [...this.rows].sort((a, b) => b.recordedAt.getTime() - a.recordedAt.getTime()).slice(0, limit);
-  }
-
   async count(): Promise<number> {
     return this.rows.length;
   }

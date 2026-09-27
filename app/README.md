@@ -3,17 +3,16 @@
 React Native companion app for the Arduino-based honey filtration machine with
 quality assessment, built for Honey Ko Bee Farm. It connects to the ESP32 over
 Bluetooth LE, receives sensor readings and machine status, grades them against
-configurable quality reference values, records each filtration session as a
-traceable batch, and produces exportable assessment reports.
+configurable quality reference values, and records each filtration session as
+a traceable batch.
 
 This is a feature-for-feature port of the Flutter build in `../dart_copy`. The
 domain logic, screens, assets, copy and reference values are the same; only
 the toolchain changed.
 
-The system is **offline by design**: accounts, batches, readings and
-notifications live in SQLite on the phone. There is no server, no sync and no
-password recovery — exporting a report or CSV is the only way data leaves the
-device.
+The system is **offline by design**: batches, readings and notifications live
+in SQLite on the phone. There is no server, no sync and no export — data never
+leaves the device.
 
 ## Stack
 
@@ -25,7 +24,6 @@ device.
 | Database | [expo-sqlite](https://docs.expo.dev/versions/latest/sdk/sqlite/) + [drizzle-orm](https://orm.drizzle.team/docs/connect-expo-sqlite) (`useLiveQuery` for reactive reads, drizzle-kit migrations) |
 | Bluetooth | [react-native-ble-plx](https://github.com/dotintent/react-native-ble-plx) |
 | Drawing / animation | react-native-svg + react-native-reanimated |
-| Export | expo-print (PDF), expo-sharing, expo-file-system |
 | Password hashing | @noble/hashes (PBKDF2-HMAC-SHA256) + expo-crypto |
 | Icons / dates | @expo/vector-icons (Material), date-fns |
 | Tests | jest-expo |
@@ -42,7 +40,7 @@ The specification asks four questions, and the navigation is built around them:
 | What should be done with the batch? | The recommendation on every verdict |
 
 Bottom navigation: **Home · Live · Statistics · History · More**. More holds
-notifications, machine connection, reference values, export, profile and about.
+notifications, machine connection, reference values, profile and about.
 
 ## The three-level result
 
@@ -134,20 +132,20 @@ app/                            expo-router routes (thin wrappers over screens)
   sign-in.tsx
   (tabs)/                       Home · Live · Statistics · History · More
     history/[code].tsx          batch detail
-    more/*.tsx                  notifications, device, reference-values, export, profile, about
+    more/*.tsx                  notifications, device, reference-values, profile, about
 src/
   core/
     database/                   drizzle schema + expo-sqlite client
     theme/                      colours, typography (ported from app_theme.dart)
     components/                 Card, Button, Text, Sheet, TextField, ListTile, …
   features/
-    auth/                       local accounts, PBKDF2 hashing, session store
+    auth/                       single admin account, session store
     monitoring/
       domain/                   entities, machine state, the quality standard, simulator physics
       data/                     repositories, packet parser, BLE + simulated transports, seeder
       application/              BatchSession (the orchestrator), stores, live-query hooks
       presentation/             Home, Live, Device, digital twin, shared widgets
-    history/  statistics/  notifications/  reports/  settings/
+    history/  statistics/  notifications/  settings/
 drizzle/                        generated SQL migrations (drizzle-kit)
 assets/                         branding, illustrations, honey_machine SVGs, animation reference pack
 docs/                           project specification and component drawings
@@ -209,7 +207,7 @@ Profiles are in `eas.json`.
 
 Other scripts:
 ```bash
-npm test                     # jest — domain, parser, session, CSV, hashing
+npm test                     # jest — domain, parser, session, hashing
 npm run typecheck            # tsc --noEmit
 npm run lint                 # expo lint
 npx drizzle-kit generate     # after editing src/core/database/schema.ts
@@ -226,9 +224,8 @@ writes a season of generated batches for the charts.
 - **Notifications are in-app.** The phone's system tray is not used; posting
   there while the BLE link is live would need a foreground service.
 - **Monitoring only.** The app does not start, stop or control the machine.
-- **No authenticity claims.** Every PDF report carries the scope statement.
-- **Offline accounts.** Passwords are stored as PBKDF2-HMAC-SHA256 with a
-  per-account salt (same scheme as the Flutter build; 15 000 rounds, because the
-  derivation runs in JavaScript on the phone).
+- **One account.** Sign in as `admin` / `123456`. There is no sign-up and
+  no password change; the credentials are fixed in
+  [account.ts](src/features/auth/domain/account.ts).
 - **Bundle id** is `com.honeyko.qualihive` in `app.json` — change it before any
   store upload.

@@ -103,7 +103,7 @@ export function isColorEmpty(color: HoneyColor): boolean {
   return !hasRgb(color) && color.pfund == null && color.label == null;
 }
 
-/** `#D78E38`, for reports, CSV and swatches. Null when the device sent no RGB. */
+/** `#D78E38`, for swatches. Null when the device sent no RGB. */
 export function colorHex(color: HoneyColor): string | null {
   if (!hasRgb(color)) return null;
   const channel = (v: number) => v.toString(16).padStart(2, '0');
@@ -153,14 +153,6 @@ export function colorGrade(color: HoneyColor): HoneyColorGrade | null {
 
   const value = effectivePfund(color);
   return value == null ? null : gradeFromPfund(value);
-}
-
-/** What to show the user — the device's label if it sent one, else the derived grade. */
-export function colorDisplayLabel(color: HoneyColor): string | null {
-  const trimmed = color.label?.trim();
-  if (trimmed) return trimmed;
-  const grade = colorGrade(color);
-  return grade == null ? null : gradeLabel(grade);
 }
 
 export function colorsEqual(

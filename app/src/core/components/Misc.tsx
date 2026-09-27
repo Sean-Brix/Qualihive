@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { alpha, radii } from '../theme/theme';
+import { alpha } from '../theme/theme';
 import { useTheme } from '../theme/useTheme';
 import { Icon, type IconName } from './Icon';
 import { Text } from './Text';
@@ -106,16 +106,6 @@ export function ProgressBar({
   );
 }
 
-/** Thin indeterminate bar at the top of a screen while an export runs. */
-export function BusyBar() {
-  const { scheme } = useTheme();
-  return (
-    <View style={[styles.busy, { backgroundColor: scheme.surfaceContainerHighest }]}>
-      <View style={[styles.busyFill, { backgroundColor: scheme.secondary }]} />
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   message: { padding: 32 },
@@ -126,6 +116,4 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 14,
   },
-  busy: { position: 'absolute', top: 0, left: 0, right: 0, height: 3 },
-  busyFill: { width: '40%', height: '100%', marginLeft: '30%', borderRadius: radii.pill },
 });

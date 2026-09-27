@@ -1,13 +1,14 @@
 /**
- * A beekeeper's account.
+ * The operator's account.
  *
- * Specification §2 lists "log in or sign up" among the expected activities,
- * and §12 settles the system as offline with no cloud. Accounts therefore
- * live only in the phone's SQLite database: signing up creates a local
- * record, and there is nothing to sync or recover from a server. That is a
- * deliberate limitation of an offline design, not an omission — a forgotten
- * password can only be reset from the device.
+ * The app has exactly one account with fixed credentials — there is no sign
+ * up and no password change. Its row lives in the phone's SQLite database so
+ * batches can be stamped with who ran them and the profile can be edited.
  */
+export const ADMIN_USERNAME = 'admin';
+export const ADMIN_PASSWORD = '123456';
+
+
 export interface Account {
   readonly id: number;
   /** Lower-cased login handle. Unique across the device. */
@@ -32,31 +33,13 @@ export function accountInitials(account: Account): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-/**
- * Why a sign-in or sign-up attempt failed.
- *
- * `unknownUser` and `wrongPassword` are separate internally but the UI shows
- * one message for both, so a stranger cannot use the login form to discover
- * which accounts exist on the device.
- */
-export type AuthFailure =
-  | 'unknownUser'
-  | 'wrongPassword'
-  | 'usernameTaken'
-  | 'weakPassword'
-  | 'invalidUsername';
+/** Why a sign-in attempt failed. */
+export type AuthFailure = 'wrongCredentials';
 
 export function authFailureMessage(failure: AuthFailure): string {
   switch (failure) {
-    case 'unknownUser':
-    case 'wrongPassword':
+    case 'wrongCredentials':
       return 'Incorrect username or password.';
-    case 'usernameTaken':
-      return 'That username already exists on this device.';
-    case 'weakPassword':
-      return 'Use at least 8 characters, including a letter and a number.';
-    case 'invalidUsername':
-      return 'Usernames are 3–24 characters: letters, numbers, dots or underscores.';
   }
 }
 

@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { Children, useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { ReactNode } from 'react';
 
@@ -51,8 +51,8 @@ export function MoreScreen() {
    *
    * Deliberately a decision the beekeeper makes rather than something the app
    * does on first launch: generated batches sitting unannounced next to real
-   * ones would be a traceability problem in a record the app exports as a
-   * quality report. Every generated batch says so in its notes.
+   * ones would be a traceability problem in the batch archive. Every
+   * generated batch says so in its notes.
    */
   const confirmSampleData = () => {
     if (busy) return;
@@ -61,7 +61,7 @@ export function MoreScreen() {
       loaded ? 'Remove sample data?' : 'Load sample data?',
       loaded
         ? 'The generated batches and their readings are deleted. Batches you actually ran are left alone.'
-        : 'Writes 24 completed batches across the last two months so Statistics, History and the reports have something to show. Each one is marked as sample data and can be removed again.',
+        : 'Writes 24 completed batches across the last two months so Statistics and History have something to show. Each one is marked as sample data and can be removed again.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -126,12 +126,6 @@ export function MoreScreen() {
             title="Quality reference values"
             subtitle="Accepted ranges each parameter is graded on"
             onPress={() => router.push('/more/reference-values')}
-          />
-          <SettingsTile
-            icon="ios-share"
-            title="Export and reports"
-            subtitle="PDF reports and CSV data"
-            onPress={() => router.push('/more/export')}
           />
         </SettingsGroup>
         <View style={{ height: 22 }} />
@@ -228,15 +222,16 @@ function ProfileCard({
   );
 }
 
-function SettingsGroup({ eyebrow, children }: { eyebrow: string; children: ReactNode[] }) {
+function SettingsGroup({ eyebrow, children }: { eyebrow: string; children: ReactNode }) {
+  const items = Children.toArray(children);
   return (
     <View>
       <Eyebrow style={{ marginLeft: 4, marginBottom: 9 }}>{eyebrow}</Eyebrow>
       <Card>
-        {children.map((child, index) => (
+        {items.map((child, index) => (
           <View key={index}>
             {child}
-            {index < children.length - 1 && <Divider indent={70} />}
+            {index < items.length - 1 && <Divider indent={70} />}
           </View>
         ))}
       </Card>

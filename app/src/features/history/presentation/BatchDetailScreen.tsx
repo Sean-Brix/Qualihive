@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { Button, IconButton } from '@/core/components/Button';
@@ -8,9 +8,7 @@ import { Icon } from '@/core/components/Icon';
 import { ListTile } from '@/core/components/ListTile';
 import { Loading } from '@/core/components/Misc';
 import { AppBar, Screen, useBottomPadding } from '@/core/components/Screen';
-import { OptionsSheet } from '@/core/components/Sheet';
 import { Text } from '@/core/components/Text';
-import { showToast } from '@/core/components/Toast';
 import { useTheme } from '@/core/theme/useTheme';
 import { formatDuration, formatHms, formatYMMMdHm } from '@/core/utils/dates';
 import { useMonitoringStore } from '@/features/monitoring/application/monitoringStore';
@@ -32,30 +30,17 @@ import {
   statusColor,
   statusIcon,
 } from '@/features/monitoring/presentation/widgets/qualityColors';
-import { useReportStore } from '@/features/reports/application/reportStore';
 
 /**
  * Everything recorded about one batch — the record described in §7, plus the
- * three-level result of §8 and the export actions of §9.
+ * three-level result of §8.
  */
 export function BatchDetailScreen({ code }: { code: string }) {
   const router = useRouter();
   const { data: batch, loading } = useBatchByCode(code);
   const { data: readings } = useBatchReadings(code);
   const deleteBatch = useMonitoringStore((s) => s.deleteBatch);
-  const shareBatchPdf = useReportStore((s) => s.shareBatchPdf);
-  const shareBatchCsv = useReportStore((s) => s.shareBatchCsv);
-  const reportError = useReportStore((s) => s.error);
-  const clearReportError = useReportStore((s) => s.clearError);
   const bottom = useBottomPadding(32);
-  const [menu, setMenu] = useState(false);
-
-  useEffect(() => {
-    if (reportError != null) {
-      showToast(reportError);
-      clearReportError();
-    }
-  }, [reportError, clearReportError]);
 
   const confirmDelete = (target: Batch) => {
     Alert.alert(
@@ -81,34 +66,10 @@ export function BatchDetailScreen({ code }: { code: string }) {
         back
         actions={
           batch != null ? (
-            <IconButton icon="more-vert" accessibilityLabel="More options" onPress={() => setMenu(true)} />
+            <IconButton icon="delete-outline" accessibilityLabel="Delete batch" onPress={() => confirmDelete(batch)} />
           ) : undefined
         }
       />
-      {batch != null && (
-        <OptionsSheet
-          visible={menu}
-          onClose={() => setMenu(false)}
-          onSelect={(key) => {
-            switch (key) {
-              case 'pdf':
-                void shareBatchPdf(batch);
-                break;
-              case 'csv':
-                void shareBatchCsv(batch, readings);
-                break;
-              case 'delete':
-                confirmDelete(batch);
-                break;
-            }
-          }}
-          options={[
-            { key: 'pdf', label: 'Share PDF report', icon: 'picture-as-pdf' },
-            { key: 'csv', label: 'Share CSV readings', icon: 'table-chart' },
-            { key: 'delete', label: 'Delete batch', icon: 'delete-outline', destructive: true, dividerAbove: true },
-          ]}
-        />
-      )}
       {batch == null ? (
         loading ? (
           <Loading />
@@ -294,7 +255,7 @@ function ReadingsCard({ readings }: { readings: SensorReading[] }) {
           ))}
           {readings.length > 50 && (
             <Text variant="labelSmall" color={scheme.onSurfaceVariant} style={{ padding: 12 }}>
-              Showing the 50 most recent. Export the CSV for the full log.
+              Showing the 50 most recent.
             </Text>
           )}
         </View>

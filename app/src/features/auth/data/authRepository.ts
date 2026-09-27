@@ -1,45 +1,19 @@
-import { count, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 import type { AppDatabase } from '@/core/database/client';
 import { accounts, type AccountRow } from '@/core/database/schema';
 
-import { AuthError, type Account } from '../domain/account';
-import { hashPassword, verifyPassword } from './passwordHasher';
-
-const USERNAME_PATTERN = /^[a-z0-9._]{3,24}$/;
-
-export interface SignUpInput {
-  username: string;
-  password: string;
-  displayName: string;
-  farmName?: string | null;
-  email?: string | null;
-  now?: Date;
-}
+import { ADMIN_PASSWORD, ADMIN_USERNAME, AuthError, type Account } from '../domain/account';
+import { hashPassword } from './passwordHasher';
 
 export interface AuthRepository {
-  /** Creates a local account and returns it signed in. */
-  signUp(input: SignUpInput): Promise<Account>;
+  /** Checks the fixed admin credentials and returns the admin account. */
   signIn(username: string, password: string, now?: Date): Promise<Account>;
   findById(id: number): Promise<Account | null>;
-  /**
-   * True when at least one account exists, which decides whether the app
-   * opens on Sign in or on Sign up.
-   */
-  hasAnyAccount(): Promise<boolean>;
   updateProfile(
     account: Account,
     changes: { displayName?: string; farmName?: string; email?: string },
   ): Promise<Account>;
-  changePassword(account: Account, currentPassword: string, newPassword: string): Promise<void>;
-}
-
-/**
- * At least 8 characters with a letter and a digit. Modest, but it is the
- * only barrier on an offline device and the beekeeper types it in a shed.
- */
-export function isPasswordAcceptable(password: string): boolean {
-  return password.length >= 8 && /[A-Za-z]/.test(password) && /[0-9]/.test(password);
 }
 
 const orNull = (value: string | null | undefined): string | null => {
@@ -60,10 +34,10 @@ export function accountFromRow(row: AccountRow): Account {
 }
 
 /**
- * Sign-up, sign-in and profile edits against the local accounts table.
+ * Sign-in and profile edits for the single admin account.
  *
- * Every method throws [AuthError] on a rejected attempt, so the UI has one
- * thing to catch and one message to show.
+ * The credentials are fixed in code; the admin row is created on the first
+ * successful sign-in so batches have an account id to be stamped with.
  */
 export class DrizzleAuthRepository implements AuthRepository {
   constructor(private readonly db: AppDatabase) {}
@@ -82,54 +56,29 @@ export class DrizzleAuthRepository implements AuthRepository {
     return row ?? null;
   }
 
-  async signUp(input: SignUpInput): Promise<Account> {
-    const handle = input.username.trim().toLowerCase();
-    if (!USERNAME_PATTERN.test(handle)) throw new AuthError('invalidUsername');
-    if (!isPasswordAcceptable(input.password)) throw new AuthError('weakPassword');
-    if ((await this.findRowByUsername(handle)) != null) throw new AuthError('usernameTaken');
-
-    const digest = await hashPassword(input.password);
-    const createdAt = input.now ?? new Date();
-    const trimmedName = input.displayName.trim();
-    const name = trimmedName.length === 0 ? handle : trimmedName;
-
-    const [inserted] = await this.db
+  private async createAdminRow(now: Date): Promise<AccountRow> {
+    const digest = await hashPassword(ADMIN_PASSWORD);
+    const [row] = await this.db
       .insert(accounts)
       .values({
-        username: handle,
-        displayName: name,
-        farmName: orNull(input.farmName),
-        email: orNull(input.email),
+        username: ADMIN_USERNAME,
+        displayName: 'Admin',
         passwordHash: digest.hash,
         passwordSalt: digest.salt,
         hashIterations: digest.iterations,
-        createdAt,
-        lastLoginAt: createdAt,
+        createdAt: now,
+        lastLoginAt: now,
       })
-      .returning({ id: accounts.id });
-
-    return {
-      id: inserted.id,
-      username: handle,
-      displayName: name,
-      farmName: orNull(input.farmName),
-      email: orNull(input.email),
-      createdAt,
-      lastLoginAt: createdAt,
-    };
+      .returning();
+    return row;
   }
 
   async signIn(username: string, password: string, now: Date = new Date()): Promise<Account> {
-    const row = await this.findRowByUsername(username.trim());
-    if (row == null) throw new AuthError('unknownUser');
+    if (username.trim().toLowerCase() !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
+      throw new AuthError('wrongCredentials');
+    }
 
-    const matches = await verifyPassword(password, {
-      hash: row.passwordHash,
-      salt: row.passwordSalt,
-      iterations: row.hashIterations,
-    });
-    if (!matches) throw new AuthError('wrongPassword');
-
+    const row = (await this.findRowByUsername(ADMIN_USERNAME)) ?? (await this.createAdminRow(now));
     await this.db.update(accounts).set({ lastLoginAt: now }).where(eq(accounts.id, row.id));
     return { ...accountFromRow(row), lastLoginAt: now };
   }
@@ -137,11 +86,6 @@ export class DrizzleAuthRepository implements AuthRepository {
   async findById(id: number): Promise<Account | null> {
     const row = await this.findRowById(id);
     return row ? accountFromRow(row) : null;
-  }
-
-  async hasAnyAccount(): Promise<boolean> {
-    const [row] = await this.db.select({ value: count() }).from(accounts);
-    return (row?.value ?? 0) > 0;
   }
 
   async updateProfile(
@@ -165,32 +109,5 @@ export class DrizzleAuthRepository implements AuthRepository {
       .where(eq(accounts.id, account.id));
 
     return updated;
-  }
-
-  async changePassword(
-    account: Account,
-    currentPassword: string,
-    newPassword: string,
-  ): Promise<void> {
-    const row = await this.findRowById(account.id);
-    if (row == null) throw new AuthError('unknownUser');
-
-    const matches = await verifyPassword(currentPassword, {
-      hash: row.passwordHash,
-      salt: row.passwordSalt,
-      iterations: row.hashIterations,
-    });
-    if (!matches) throw new AuthError('wrongPassword');
-    if (!isPasswordAcceptable(newPassword)) throw new AuthError('weakPassword');
-
-    const digest = await hashPassword(newPassword);
-    await this.db
-      .update(accounts)
-      .set({
-        passwordHash: digest.hash,
-        passwordSalt: digest.salt,
-        hashIterations: digest.iterations,
-      })
-      .where(eq(accounts.id, account.id));
   }
 }

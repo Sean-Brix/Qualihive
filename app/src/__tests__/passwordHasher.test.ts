@@ -1,6 +1,5 @@
 import { base64ToBytes, bytesToBase64 } from '@/core/utils/base64';
 import { hashPassword, verifyPassword } from '@/features/auth/data/passwordHasher';
-import { isPasswordAcceptable } from '@/features/auth/data/authRepository';
 
 // Deterministic "random" bytes so the test does not depend on expo-crypto.
 const fakeRandom = (count: number) => Uint8Array.from({ length: count }, (_, i) => (i * 37) & 0xff);
@@ -33,15 +32,6 @@ describe('password hashing', () => {
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
     expect(hex).toBe('120fb6cffcf8b32c43e7225256c4f837a86548c92ccc35480805987cb70be17b');
-  });
-});
-
-describe('password policy', () => {
-  test('needs eight characters with a letter and a digit', () => {
-    expect(isPasswordAcceptable('honey2026')).toBe(true);
-    expect(isPasswordAcceptable('honey')).toBe(false);
-    expect(isPasswordAcceptable('12345678')).toBe(false);
-    expect(isPasswordAcceptable('honeyhoney')).toBe(false);
   });
 });
 

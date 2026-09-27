@@ -17,10 +17,8 @@ import { AuthError } from '../domain/account';
 const HERO = require('../../../../assets/illustrations/honey_filter_hero.png');
 
 /**
- * Sign in, or create the first local account.
- *
- * The system is offline, so there is no password-recovery flow to offer:
- * nothing off the device can verify who the beekeeper is.
+ * Sign in to the single admin account. There is no account creation and no
+ * password recovery — the credentials are fixed.
  */
 export function SignInScreen() {
   const { width } = useWindowDimensions();
@@ -58,32 +56,19 @@ export function SignInScreen() {
 
 function FormPanel() {
   const { scheme, isDark } = useTheme();
-  const hasAnyAccount = useSessionStore((s) => s.hasAnyAccount);
   const signIn = useSessionStore((s) => s.signIn);
-  const signUp = useSessionStore((s) => s.signUp);
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [farmName, setFarmName] = useState('');
-  // Opens on Create account when the device has no accounts yet.
-  const [modeChosen, setModeChosen] = useState(false);
-  const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
-
-  if (hasAnyAccount != null && !modeChosen) {
-    setModeChosen(true);
-    setCreating(!hasAnyAccount);
-  }
 
   const submit = async () => {
     if (busy) return;
     const errors = {
       username: username.trim().length === 0 ? 'Enter your username' : null,
       password: password.length === 0 ? 'Enter your password' : null,
-      displayName: creating && displayName.trim().length === 0 ? 'Enter your name' : null,
     };
     setFieldErrors(errors);
     if (Object.values(errors).some((e) => e != null)) return;
@@ -91,11 +76,7 @@ function FormPanel() {
     setBusy(true);
     setError(null);
     try {
-      if (creating) {
-        await signUp({ username, password, displayName, farmName });
-      } else {
-        await signIn(username, password);
-      }
+      await signIn(username, password);
     } catch (caught) {
       if (caught instanceof AuthError) {
         setError(caught.message);
@@ -132,12 +113,10 @@ function FormPanel() {
       </View>
 
       <Text variant="headlineSmall" style={{ marginTop: 24 }}>
-        {creating ? 'Set up your workspace' : 'Welcome back'}
+        Welcome back
       </Text>
       <Text variant="bodyMedium" color={scheme.onSurfaceVariant} style={{ marginTop: 7 }}>
-        {creating
-          ? "Create the local account that will own this device's batch records."
-          : 'Sign in to continue monitoring filtration quality.'}
+        Sign in to continue monitoring filtration quality.
       </Text>
 
       <View style={{ height: 26 }} />
@@ -167,43 +146,12 @@ function FormPanel() {
         }}
         password
         autoCapitalize="none"
-        autoComplete={creating ? 'new-password' : 'current-password'}
-        textContentType={creating ? 'newPassword' : 'password'}
-        returnKeyType={creating ? 'next' : 'done'}
-        onSubmitEditing={creating ? undefined : () => void submit()}
-        helperText={creating ? '8+ characters, with a letter and a number' : null}
+        autoComplete="current-password"
+        textContentType="password"
+        returnKeyType="done"
+        onSubmitEditing={() => void submit()}
         errorText={fieldErrors.password}
       />
-      {creating && (
-        <>
-          <View style={{ height: 14 }} />
-          <TextField
-            label="Your name"
-            prefixIcon="badge"
-            value={displayName}
-            onChangeText={(v) => {
-              setDisplayName(v);
-              setFieldErrors((e) => ({ ...e, displayName: null }));
-            }}
-            autoCapitalize="words"
-            autoComplete="name"
-            textContentType="name"
-            returnKeyType="next"
-            errorText={fieldErrors.displayName}
-          />
-          <View style={{ height: 14 }} />
-          <TextField
-            label="Farm name (optional)"
-            prefixIcon="agriculture"
-            value={farmName}
-            onChangeText={setFarmName}
-            autoCapitalize="words"
-            returnKeyType="done"
-            onSubmitEditing={() => void submit()}
-          />
-        </>
-      )}
-
       {error != null && (
         <View style={[styles.error, { backgroundColor: scheme.errorContainer }]}>
           <Icon name="error-outline" size={18} color={scheme.onErrorContainer} />
@@ -214,27 +162,12 @@ function FormPanel() {
       )}
 
       <View style={{ height: 22 }} />
-      <Button
-        label={creating ? 'Create account' : 'Sign in'}
-        icon={creating ? 'add-circle-outline' : 'arrow-forward'}
-        loading={busy}
-        onPress={() => void submit()}
-      />
-      <View style={{ height: 8 }} />
-      <Button
-        variant="text"
-        label={creating ? 'I already have an account' : 'Create a new account'}
-        disabled={busy}
-        onPress={() => {
-          setCreating((v) => !v);
-          setError(null);
-        }}
-      />
+      <Button label="Sign in" icon="arrow-forward" loading={busy} onPress={() => void submit()} />
 
       <View style={styles.footnote}>
         <Icon name="shield" size={16} color={scheme.onSurfaceVariant} />
         <Text variant="labelSmall" color={scheme.onSurfaceVariant} style={{ flex: 1 }}>
-          Accounts and records stay on this device. There is no cloud backup or password recovery.
+          Records stay on this device. There is no cloud backup.
         </Text>
       </View>
     </View>
