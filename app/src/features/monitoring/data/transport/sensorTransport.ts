@@ -1,3 +1,4 @@
+import type { MachineCommand } from '../../domain/pumpCycle';
 import type { SensorReading } from '../../domain/sensorReading';
 
 /** A device found while scanning. */
@@ -23,11 +24,19 @@ export interface TransportStatus {
   readonly state: TransportState;
   readonly device?: DiscoveredDevice | null;
   readonly message?: string | null;
+  /**
+   * Whether the connected device accepts commands — over BLE, whether it
+   * exposes a writable characteristic. A read-only sensor board connects and
+   * streams readings, but the app cannot run its pumps.
+   */
+  readonly controllable?: boolean;
 }
 
 export const DISCONNECTED: TransportStatus = { state: 'disconnected', device: null, message: null };
 
 export const isConnected = (status: TransportStatus) => status.state === 'connected';
+export const isControllable = (status: TransportStatus) =>
+  isConnected(status) && status.controllable === true;
 export const isBusy = (status: TransportStatus) =>
   status.state === 'connecting' || status.state === 'scanning';
 
@@ -76,6 +85,12 @@ export interface SensorTransport {
   stopScan(): Promise<void>;
   connect(device: DiscoveredDevice): Promise<void>;
   disconnect(): Promise<void>;
+  /**
+   * Delivers one command to the connected device. Resolves once the write
+   * has gone out; rejects when there is no link, the device accepts no
+   * commands, or the write fails.
+   */
+  send(command: MachineCommand): Promise<void>;
   dispose(): Promise<void>;
 }
 

@@ -3,10 +3,19 @@ import {
   deriveVisualState,
   filterActive,
   flowFront,
+  hopperLevelDuringCycle,
   isRunning,
   pumpActive,
+  routeActive,
   showsOnline,
 } from '@/features/monitoring/domain/machineVisualState';
+import {
+  PUMPS,
+  advanceCycle,
+  stageForPump,
+  startCycle,
+  type PumpNumber,
+} from '@/features/monitoring/domain/pumpCycle';
 import {
   FLOW_ROUTES,
   HOPPER_BOTTOM_Y,
@@ -161,5 +170,59 @@ describe('scene geometry', () => {
       expect(route.activeFrom).toBeLessThanOrEqual(5);
       expect(route.path.startsWith('M ')).toBe(true);
     }
+  });
+});
+
+describe('the app’s pump cycle', () => {
+  const driving = (pump: PumpNumber) =>
+    deriveVisualState({
+      connected: true,
+      status: 'running',
+      stage: stageForPump(pump),
+      activePump: pump,
+      lastReadingAt: new Date(),
+    });
+
+  test('only the pump the app started runs', () => {
+    for (const pump of PUMPS) {
+      const state = driving(pump);
+      for (const other of PUMPS) expect(pumpActive(state, other)).toBe(other === pump);
+    }
+  });
+
+  test('honey moves only along the pipes either side of the running pump', () => {
+    for (const pump of PUMPS) {
+      const lit = FLOW_ROUTES.filter((route) => routeActive(driving(pump), route));
+      expect(lit.map((route) => route.pump)).toEqual([pump, pump]);
+    }
+    expect(FLOW_ROUTES.filter((route) => routeActive(driving(4), route)).map((r) => r.id)).toContain(
+      'p4_to_output_jar',
+    );
+  });
+
+  test('a filter works while the pump feeding it runs', () => {
+    expect(filterActive(driving(1), 1)).toBe(true);
+    expect(filterActive(driving(2), 1)).toBe(false);
+    expect(filterActive(driving(2), 2)).toBe(true);
+    expect([1, 2, 3].some((filter) => filterActive(driving(4), filter))).toBe(false);
+  });
+
+  test('a fault holds every pump, whichever one was started', () => {
+    const faulted = deriveVisualState({
+      connected: true,
+      status: 'error',
+      stage: stageForPump(2),
+      activePump: 2,
+    });
+    expect(PUMPS.some((pump) => pumpActive(faulted, pump))).toBe(false);
+  });
+
+  test('pump 1 empties the hopper over its run', () => {
+    const start = 1_000_000;
+    const cycle = startCycle([60, 60, 60, 60], start);
+    expect(hopperLevelDuringCycle(cycle, start)).toBe(1);
+    expect(hopperLevelDuringCycle(cycle, start + 30_000)).toBeCloseTo(0.53, 2);
+    const later = advanceCycle(cycle, start + 60_000, 'done');
+    expect(hopperLevelDuringCycle(later, start + 60_000)).toBeCloseTo(0.06, 9);
   });
 });

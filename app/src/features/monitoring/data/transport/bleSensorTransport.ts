@@ -1,8 +1,10 @@
-import { BleManager, State, type Device, type Subscription } from 'react-native-ble-plx';
+import { BleManager, State, type Characteristic, type Device, type Subscription } from 'react-native-ble-plx';
 
-import { base64ToBytes } from '@/core/utils/base64';
+import { base64ToBytes, bytesToBase64 } from '@/core/utils/base64';
 
+import type { MachineCommand } from '../../domain/pumpCycle';
 import type { SensorReading } from '../../domain/sensorReading';
+import { chunkBytes, encodeCommand, encodeUtf8 } from '../machineCommand';
 import { PacketBuffer, parseReading } from '../readingParser';
 import { ensureBlePermissions } from './blePermissions';
 import {
@@ -21,24 +23,53 @@ export const NORDIC_UART_SERVICE = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
 /** Device to app characteristic (notify). */
 export const NORDIC_UART_TX_CHARACTERISTIC = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
 
+/** App to device characteristic (write) — where pump commands go. */
+export const NORDIC_UART_RX_CHARACTERISTIC = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
+
 export interface BleTransportOptions {
   serviceUuid?: string;
   notifyCharacteristicUuid?: string;
+  writeCharacteristicUuid?: string;
   /** Injectable for tests; defaults to a fresh [BleManager]. */
   manager?: BleManager;
 }
 
+/** Where commands are written, found once per connection. */
+interface WriteTarget {
+  serviceUuid: string;
+  uuid: string;
+  /** Acknowledged writes when the characteristic offers them: slower, but nothing is lost silently. */
+  withResponse: boolean;
+}
+
+/** ATT header bytes that every write spends out of the MTU. */
+const ATT_OVERHEAD = 3;
+
+/** The BLE 4.0 default MTU, assumed until a larger one is negotiated. */
+const DEFAULT_MTU = 23;
+
 const sameUuid = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+
+const isWritable = (c: Characteristic) => c.isWritableWithResponse || c.isWritableWithoutResponse;
+
+const writeTargetOf = (c: Characteristic): WriteTarget => ({
+  serviceUuid: c.serviceUUID,
+  uuid: c.uuid,
+  withResponse: c.isWritableWithResponse,
+});
 
 /**
  * BLE implementation backed by `react-native-ble-plx`.
  *
  * Defaults to the Nordic UART Service, which is what ESP32 "BLE serial"
- * sketches expose. Override the UUIDs if your firmware uses its own.
+ * sketches expose: readings arrive on its TX characteristic, and pump
+ * commands go out on its RX characteristic. Override the UUIDs if your
+ * firmware uses its own.
  */
 export class BleSensorTransport implements SensorTransport {
   readonly serviceUuid: string;
   readonly notifyCharacteristicUuid: string;
+  readonly writeCharacteristicUuid: string;
 
   private readonly manager: BleManager;
   private readonly statusEmitter = new Emitter<TransportStatus>();
@@ -50,6 +81,9 @@ export class BleSensorTransport implements SensorTransport {
   private currentStatus: TransportStatus = DISCONNECTED;
   private descriptor: DiscoveredDevice | null = null;
   private device: Device | null = null;
+  private writeTarget: WriteTarget | null = null;
+  /** Commands go out one at a time, so the pieces of two never interleave. */
+  private writes: Promise<unknown> = Promise.resolve();
 
   private stateSubscription: Subscription | null = null;
   private disconnectSubscription: Subscription | null = null;
@@ -60,10 +94,12 @@ export class BleSensorTransport implements SensorTransport {
   constructor({
     serviceUuid = NORDIC_UART_SERVICE,
     notifyCharacteristicUuid = NORDIC_UART_TX_CHARACTERISTIC,
+    writeCharacteristicUuid = NORDIC_UART_RX_CHARACTERISTIC,
     manager,
   }: BleTransportOptions = {}) {
     this.serviceUuid = serviceUuid;
     this.notifyCharacteristicUuid = notifyCharacteristicUuid;
+    this.writeCharacteristicUuid = writeCharacteristicUuid;
     this.manager = manager ?? new BleManager();
 
     this.stateSubscription = this.manager.onStateChange((state) => {
@@ -210,6 +246,10 @@ export class BleSensorTransport implements SensorTransport {
         return;
       }
 
+      // Optional: a board with no writable characteristic still streams
+      // readings, it just cannot be told to run its pumps.
+      this.writeTarget = await this.findWriteCharacteristic(target, characteristic.serviceUUID);
+
       this.packets.clear();
       this.valueSubscription = this.manager.monitorCharacteristicForDevice(
         device.id,
@@ -228,7 +268,12 @@ export class BleSensorTransport implements SensorTransport {
         },
       );
 
-      this.emit({ state: 'connected', device, message: null });
+      this.emit({
+        state: 'connected',
+        device,
+        message: null,
+        controllable: this.writeTarget != null,
+      });
     } catch (error) {
       this.emit({ state: 'error', device, message: describe(error) });
     }
@@ -237,6 +282,41 @@ export class BleSensorTransport implements SensorTransport {
   async disconnect(): Promise<void> {
     await this.teardownConnection();
     this.emit(DISCONNECTED);
+  }
+
+  send(command: MachineCommand): Promise<void> {
+    const write = this.writes.then(() => this.write(command));
+    this.writes = write.catch(() => undefined);
+    return write;
+  }
+
+  private async write(command: MachineCommand): Promise<void> {
+    const device = this.device;
+    const target = this.writeTarget;
+    if (device == null || this.currentStatus.state !== 'connected') {
+      throw new Error('Not connected to a machine.');
+    }
+    if (target == null) throw new Error('This machine does not accept commands.');
+
+    const size = Math.max(DEFAULT_MTU, device.mtu ?? DEFAULT_MTU) - ATT_OVERHEAD;
+    for (const chunk of chunkBytes(encodeUtf8(encodeCommand(command)), size)) {
+      const value = bytesToBase64(chunk);
+      if (target.withResponse) {
+        await this.manager.writeCharacteristicWithResponseForDevice(
+          device.id,
+          target.serviceUuid,
+          target.uuid,
+          value,
+        );
+      } else {
+        await this.manager.writeCharacteristicWithoutResponseForDevice(
+          device.id,
+          target.serviceUuid,
+          target.uuid,
+          value,
+        );
+      }
+    }
   }
 
   async dispose(): Promise<void> {
@@ -287,6 +367,37 @@ export class BleSensorTransport implements SensorTransport {
     return null;
   }
 
+  /**
+   * The configured write characteristic, or failing that a writable one on
+   * the service readings arrive on — a custom serial service keeps its pair
+   * together.
+   *
+   * Deliberately no wider than that: other services carry writable
+   * characteristics too (the device name, for one), and JSON written there
+   * would at best be ignored.
+   */
+  private async findWriteCharacteristic(device: Device, notifyServiceUuid: string) {
+    const services = await device.services();
+
+    for (const service of services) {
+      if (!sameUuid(service.uuid, this.serviceUuid)) continue;
+      for (const characteristic of await service.characteristics()) {
+        if (sameUuid(characteristic.uuid, this.writeCharacteristicUuid) && isWritable(characteristic)) {
+          return writeTargetOf(characteristic);
+        }
+      }
+    }
+
+    for (const service of services) {
+      if (!sameUuid(service.uuid, notifyServiceUuid)) continue;
+      for (const characteristic of await service.characteristics()) {
+        if (isWritable(characteristic)) return writeTargetOf(characteristic);
+      }
+    }
+
+    return null;
+  }
+
   private onBytes(bytes: Uint8Array): void {
     for (const line of this.packets.add(bytes)) {
       const reading = parseReading(line, {
@@ -303,6 +414,7 @@ export class BleSensorTransport implements SensorTransport {
     this.disconnectSubscription?.remove();
     this.disconnectSubscription = null;
     this.packets.clear();
+    this.writeTarget = null;
 
     const device = this.device;
     this.device = null;

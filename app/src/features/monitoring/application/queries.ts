@@ -2,6 +2,7 @@ import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useMemo } from 'react';
 
 import { db } from '@/core/database/client';
+import { useNow } from '@/core/utils/useNow';
 import { useActiveStandard } from '@/features/settings/application/standardStore';
 
 import { alertFromRow, alertQueries } from '../data/alertRepository';
@@ -10,10 +11,15 @@ import { readingFromRow, readingQueries } from '../data/readingRepository';
 import { isConnected } from '../data/transport/sensorTransport';
 import type { Alert } from '../domain/alert';
 import type { Batch } from '../domain/batch';
-import { deriveVisualState, type MachineVisualState } from '../domain/machineVisualState';
+import {
+  deriveVisualState,
+  hopperLevelDuringCycle,
+  type MachineVisualState,
+} from '../domain/machineVisualState';
+import { isCycleRunning, stageForPump } from '../domain/pumpCycle';
 import { assessmentOf, evaluateReading, type QualityEvaluation } from '../domain/qualityEvaluation';
 import type { SensorReading } from '../domain/sensorReading';
-import { useLiveReading, useTransportStatus } from './monitoringStore';
+import { useLiveReading, usePumpCycle, useTransportStatus } from './monitoringStore';
 
 /**
  * Reactive reads of the database — the equivalent of drift's `watch()`
@@ -92,26 +98,38 @@ export function useLiveEvaluation(): QualityEvaluation | null {
  * of what it is doing. The open batch is the fallback for firmware that
  * reports a stage only when it changes, so the twin keeps showing the cycle
  * between packets instead of dropping back to idle.
+ *
+ * While the app is running the pump cycle, the cycle outranks both: the app
+ * knows which pump it started, whether or not a packet has said so yet.
  */
 export function useMachineVisual(): MachineVisualState {
   const status = useTransportStatus();
   const reading = useLiveReading();
+  const cycle = usePumpCycle();
   const { data: batch } = useActiveBatch();
   const evaluation = useLiveEvaluation();
 
+  const connected = isConnected(status);
+  const pump = connected && isCycleRunning(cycle) ? cycle.activePump : null;
+  // Pump 1 drains the hopper over its run, so the drawing needs a clock then.
+  const now = useNow(1000, pump === 1);
+
   return useMemo(() => {
-    const connected = isConnected(status);
+    const reported =
+      reading?.machineStatus ?? batch?.machineStatus ?? (connected ? 'connected' : 'disconnected');
+    // A fault or a pause the machine reports still shows through.
+    const driving = pump != null && reported !== 'error' && reported !== 'paused';
+
     return deriveVisualState({
       connected,
-      status:
-        reading?.machineStatus ??
-        batch?.machineStatus ??
-        (connected ? 'connected' : 'disconnected'),
-      stage: reading?.stage ?? batch?.stage ?? 'idle',
+      status: driving ? 'running' : reported,
+      stage: pump != null ? stageForPump(pump) : (reading?.stage ?? batch?.stage ?? 'idle'),
+      activePump: pump,
+      hopperLevel: pump == null ? null : hopperLevelDuringCycle(cycle, now),
       weightKg: reading?.weightKg,
       flowLpm: reading?.flowLpm,
       assessment: evaluation ? assessmentOf(evaluation) : null,
       lastReadingAt: reading?.recordedAt,
     });
-  }, [status, reading, batch, evaluation]);
+  }, [connected, pump, cycle, now, reading, batch, evaluation]);
 }

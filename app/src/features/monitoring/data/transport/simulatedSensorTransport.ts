@@ -2,6 +2,7 @@ import { SeededRandom } from '@/core/utils/random';
 
 import { BatchRun } from '../../domain/batchRun';
 import { HONEY_TROUBLES, randomProfile, type HoneyTrouble } from '../../domain/honeyProfile';
+import { stageForPump, type MachineCommand, type PumpNumber } from '../../domain/pumpCycle';
 import type { SensorReading } from '../../domain/sensorReading';
 import {
   DISCONNECTED,
@@ -15,6 +16,9 @@ import {
 
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+/** Roughly what one acknowledged BLE write takes. */
+const WRITE_LATENCY_MS = 60;
+
 export const SIMULATOR_DEVICE: DiscoveredDevice = {
   id: 'simulator',
   name: 'Qualihive Simulator',
@@ -22,24 +26,31 @@ export const SIMULATOR_DEVICE: DiscoveredDevice = {
 };
 
 export interface SimulatedTransportOptions {
-  /**
-   * Wall-clock spacing between samples, in milliseconds. A real cycle takes
-   * minutes, so this is deliberately faster than the process clock
-   * [BatchRun] reasons on.
-   */
+  /** Wall-clock spacing between samples, in milliseconds. */
   intervalMs?: number;
-  /** How many samples each stage lasts before the sequence advances. */
-  samplesPerStage?: number;
   seed?: number;
+}
+
+/** The pump the machine is running, and when it switches itself off. */
+interface RunningPump {
+  readonly pump: PumpNumber;
+  readonly startedAt: number;
+  readonly durationMs: number;
 }
 
 /**
  * A fake device that behaves like the real one.
  *
  * Exists because the Android emulator has no Bluetooth radio, so this is the
- * only way to exercise the dashboard, grading, batches and history without
- * hardware. It walks the full filtration sequence of §9 — extracting through
- * to completed — and starts a fresh lot of honey each time a cycle finishes.
+ * only way to exercise the dashboard, grading, batches, history and the pump
+ * controls without hardware.
+ *
+ * It follows the app's pump commands the way the firmware is meant to: idle
+ * until told to run a pump, one pump at a time, and every pump switching
+ * itself off when its duration runs out, whether or not another command
+ * arrives. Running pump 1 loads a fresh lot of honey into the hopper; pump 4
+ * carries it into the jar. Every third lot carries a defect, so a demo
+ * reaches every verdict the app can produce.
  *
  * The physics live in [BatchRun]; this class is only the transport around it,
  * which is what lets a seeded demo archive and a live demo run produce the
@@ -51,7 +62,6 @@ export interface SimulatedTransportOptions {
  */
 export class SimulatedSensorTransport implements SensorTransport {
   readonly intervalMs: number;
-  readonly samplesPerStage: number;
 
   private readonly random: SeededRandom;
   private readonly statusEmitter = new Emitter<TransportStatus>();
@@ -61,13 +71,16 @@ export class SimulatedSensorTransport implements SensorTransport {
   private timer: ReturnType<typeof setInterval> | null = null;
   private currentStatus: TransportStatus = DISCONNECTED;
   private devices: readonly DiscoveredDevice[] = [];
+  private device: DiscoveredDevice | null = null;
   private run: BatchRun | null = null;
   private runCount = 0;
+  private running: RunningPump | null = null;
+  /** Share of the current lot already in the jar, banked whenever pump 4 stops. */
+  private jarShare = 0;
   private disposed = false;
 
-  constructor({ intervalMs = 2000, samplesPerStage = 3, seed = 7 }: SimulatedTransportOptions = {}) {
+  constructor({ intervalMs = 2000, seed = 7 }: SimulatedTransportOptions = {}) {
     this.intervalMs = intervalMs;
-    this.samplesPerStage = samplesPerStage;
     this.random = new SeededRandom(seed);
   }
 
@@ -115,18 +128,48 @@ export class SimulatedSensorTransport implements SensorTransport {
     await delay(700);
     if (this.disposed) return;
 
-    this.emit({ state: 'connected', device, message: null });
+    this.device = device;
+    this.running = null;
+    if (this.run == null) this.startRun();
+    this.emit({ state: 'connected', device, message: null, controllable: true });
 
-    this.startRun();
     if (this.timer) clearInterval(this.timer);
-    this.timer = setInterval(() => this.sample(device), this.intervalMs);
-    this.sample(device);
+    this.timer = setInterval(() => this.sample(), this.intervalMs);
+    this.sample();
   }
 
   async disconnect(): Promise<void> {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
+    // Like the firmware should, a machine that loses its link stops pumping.
+    this.switchOff(Date.now());
+    this.device = null;
     this.emit(DISCONNECTED);
+  }
+
+  async send(command: MachineCommand): Promise<void> {
+    if (this.currentStatus.state !== 'connected' || this.device == null) {
+      throw new Error('Not connected to a machine.');
+    }
+    await delay(WRITE_LATENCY_MS);
+    if (this.disposed || this.device == null) throw new Error('Not connected to a machine.');
+
+    const now = Date.now();
+    this.switchOff(now);
+
+    if (command.type === 'pumpOn') {
+      // Pump 1 draws from the hopper, so a cycle starting over is a new lot.
+      if (command.pump === 1) this.startRun();
+      this.running = {
+        pump: command.pump,
+        startedAt: now,
+        durationMs: Math.max(0, command.durationSeconds) * 1000,
+      };
+    }
+
+    // Report the change straight away rather than at the next tick, as
+    // firmware that answers a command with a fresh packet would.
+    this.sample();
   }
 
   async dispose(): Promise<void> {
@@ -154,23 +197,46 @@ export class SimulatedSensorTransport implements SensorTransport {
         ? defects[(Math.floor(this.runCount / 3) - 1) % defects.length]
         : 'none';
 
-    this.run = new BatchRun({
-      profile: randomProfile(this.random, trouble),
-      random: this.random,
-      samplesPerStage: this.samplesPerStage,
-    });
+    this.run = new BatchRun({ profile: randomProfile(this.random, trouble), random: this.random });
+    this.jarShare = 0;
   }
 
-  private sample(device: DiscoveredDevice): void {
-    let run = this.run;
-    if (run == null || run.isComplete) {
-      this.startRun();
-      run = this.run!;
-    }
+  /** The jar share at [now], counting pump 4's progress while it runs. */
+  private jarShareAt(now: number): number {
+    const running = this.running;
+    if (running == null || running.pump !== 4) return this.jarShare;
+    if (running.durationMs <= 0) return 1;
+    const elapsed = Math.min(now, running.startedAt + running.durationMs) - running.startedAt;
+    return Math.min(1, this.jarShare + elapsed / running.durationMs);
+  }
+
+  private switchOff(now: number): void {
+    this.jarShare = this.jarShareAt(now);
+    this.running = null;
+  }
+
+  /**
+   * The firmware's backstop: a pump left running past its duration switches
+   * itself off, whether or not the app is still there to say so.
+   */
+  private expire(now: number): void {
+    const running = this.running;
+    if (running != null && now >= running.startedAt + running.durationMs) this.switchOff(now);
+  }
+
+  private sample(): void {
+    const device = this.device;
+    if (device == null) return;
+
+    const now = Date.now();
+    this.expire(now);
+    if (this.run == null) this.startRun();
 
     this.readingEmitter.emit(
-      run.next({
-        at: new Date(),
+      this.run!.driven({
+        at: new Date(now),
+        stage: this.running == null ? 'idle' : stageForPump(this.running.pump),
+        transferred: this.jarShareAt(now),
         deviceId: device.id,
         deviceName: deviceDisplayName(device),
       }),

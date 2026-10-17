@@ -14,6 +14,13 @@ const FLOWING: ReadonlySet<FiltrationStage> = new Set([
   'finalTransfer',
 ]);
 
+interface SampleOptions {
+  at: Date;
+  batchId?: string | null;
+  deviceId?: string | null;
+  deviceName?: string | null;
+}
+
 export interface BatchRunOptions {
   profile: HoneyProfile;
   random: RandomSource;
@@ -93,13 +100,37 @@ export class BatchRun {
   }
 
   /** The next sample, advancing the cycle by one step. */
-  next(options: {
-    at: Date;
-    batchId?: string | null;
-    deviceId?: string | null;
-    deviceName?: string | null;
-  }): SensorReading {
-    const current = this.stage;
+  next(options: SampleOptions): SensorReading {
+    const reading = this.sample(this.stage, options, { sequenced: true });
+    this.advance();
+    return reading;
+  }
+
+  /**
+   * A sample at a stage the caller chooses, instead of the next one in the
+   * run's own sequence. This is how the simulator follows pump commands from
+   * the app: the app decides when each pump runs, and the run only supplies
+   * the honey.
+   *
+   * [transferred] is the share of the lot already in the jar, 0–1. The
+   * caller knows it from how long pump 4 has run; sample counts mean nothing
+   * when the pumps run for as long as the operator set.
+   */
+  driven(options: SampleOptions & { stage: FiltrationStage; transferred: number }): SensorReading {
+    const share = Math.min(1, Math.max(0, options.transferred));
+    this.litres = this.profile.volumeLitres * share;
+    return this.sample(options.stage, options, { sequenced: false });
+  }
+
+  /**
+   * One sample at [current]. [sequenced] is true when the run is walking its
+   * own sequence, and false when a caller is choosing the stage.
+   */
+  private sample(
+    current: FiltrationStage,
+    options: SampleOptions,
+    { sequenced }: { sequenced: boolean },
+  ): SensorReading {
     const flowing = FLOWING.has(current);
 
     // The jacket climbs toward its working temperature while honey is moving
@@ -107,12 +138,17 @@ export class BatchRun {
     const target = flowing ? this.profile.workingC : this.profile.ambientC;
     this.temperature += (target - this.temperature) * 0.32;
 
-    this.turbidity += (this.turbidityTargetFor(current) - this.turbidity) * 0.5;
+    // An in-line sensor with nothing flowing past it keeps seeing the honey
+    // it last saw. A driven run sits idle between cycles for as long as the
+    // operator likes, so clarity only changes while a pump is moving honey.
+    if (flowing || sequenced) {
+      this.turbidity += (this.turbidityTargetFor(current) - this.turbidity) * 0.5;
+    }
 
     const flow = flowing
       ? this.nominalFlowLpm * this.flowFactorFor(current) + this.noise(0.05)
       : 0;
-    if (flowing) this.litres += flow * this.minutesPerSample;
+    if (flowing && sequenced) this.litres += flow * this.minutesPerSample;
 
     let machineStatus: MachineStatus;
     switch (current) {
@@ -126,7 +162,7 @@ export class BatchRun {
         machineStatus = 'running';
     }
 
-    const reading = makeReading({
+    return makeReading({
       recordedAt: options.at,
       batchId: options.batchId ?? null,
       // Properties of the honey: the lot's own value plus sensor noise.
@@ -144,9 +180,6 @@ export class BatchRun {
       deviceId: options.deviceId ?? null,
       deviceName: options.deviceName ?? null,
     });
-
-    this.advance();
-    return reading;
   }
 
   /** Runs the cycle to completion in one go, for seeding an archive. */

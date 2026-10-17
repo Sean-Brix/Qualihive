@@ -11,6 +11,7 @@ import { formatHms } from '@/core/utils/dates';
 import { useLiveEvaluation, useMachineVisual } from '../../application/queries';
 import { machineStatusDescription, machineStatusLabel, stageDescription, stageLabel } from '../../domain/machineState';
 import { flowFront, type MachineFault } from '../../domain/machineVisualState';
+import { pumpDescription, pumpLabel } from '../../domain/pumpCycle';
 import {
   displayValue,
   parameterOf,
@@ -48,6 +49,8 @@ export function MachinePanel() {
   const evaluation = useLiveEvaluation();
   const accent = machineStatusColor(visual.status, scheme);
   const front = flowFront(visual);
+  // Under the app's own cycle, "which pump" says more than the stage name.
+  const pump = front > 0 ? visual.activePump : null;
 
   return (
     <Card>
@@ -58,7 +61,7 @@ export function MachinePanel() {
         </Text>
         {front > 0 && (
           <Pill
-            label={stageLabel(visual.stage)}
+            label={pump != null ? `${pumpLabel(pump)} of 4` : stageLabel(visual.stage)}
             color={scheme.secondary}
             background={scheme.secondaryContainer}
           />
@@ -71,7 +74,11 @@ export function MachinePanel() {
 
       <View style={styles.caption}>
         <Text variant="bodySmall" color={scheme.onSurfaceVariant} style={{ flex: 1 }}>
-          {front > 0 ? stageDescription(visual.stage) : machineStatusDescription(visual.status)}
+          {pump != null
+            ? pumpDescription(pump)
+            : front > 0
+              ? stageDescription(visual.stage)
+              : machineStatusDescription(visual.status)}
         </Text>
         {visual.jarLevel > 0 && (
           <View style={styles.jar}>

@@ -12,12 +12,16 @@ import { Eyebrow, Text } from '@/core/components/Text';
 import { showToast } from '@/core/components/Toast';
 import { alpha, radii } from '@/core/theme/theme';
 import { useTheme } from '@/core/theme/useTheme';
+import { formatSpan } from '@/core/utils/dates';
 import { useAccount, useSessionStore } from '@/features/auth/application/sessionStore';
 import { accountInitials } from '@/features/auth/domain/account';
 import { useMonitoringStore } from '@/features/monitoring/application/monitoringStore';
 import { useBatchHistory, useUnreadAlertCount } from '@/features/monitoring/application/queries';
 import { sampleDataSeeder } from '@/features/monitoring/application/services';
 import { transportLabel } from '@/features/monitoring/data/transport/sensorTransport';
+import { cycleSeconds } from '@/features/monitoring/domain/pumpCycle';
+
+import { usePumpTimers } from '../application/pumpTimerStore';
 
 /** Everything that does not need a tab of its own. */
 export function MoreScreen() {
@@ -30,6 +34,7 @@ export function MoreScreen() {
   const loadSampleData = useMonitoringStore((s) => s.loadSampleData);
   const removeSampleData = useMonitoringStore((s) => s.removeSampleData);
   const signOut = useSessionStore((s) => s.signOut);
+  const pumpTimers = usePumpTimers();
   const bottom = useBottomPadding(36);
 
   // Whether the archive currently holds generated batches — re-checked
@@ -116,6 +121,12 @@ export function MoreScreen() {
             title="Machine connection"
             subtitle={transportLabel(status)}
             onPress={() => router.push('/more/device')}
+          />
+          <SettingsTile
+            icon="timer"
+            title="Pump timers"
+            subtitle={`How long each of the 4 pumps runs · ${formatSpan(cycleSeconds(pumpTimers))} per cycle`}
+            onPress={() => router.push('/more/pump-timers')}
           />
         </SettingsGroup>
         <View style={{ height: 22 }} />

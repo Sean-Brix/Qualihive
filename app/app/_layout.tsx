@@ -16,6 +16,7 @@ import { alpha } from '@/core/theme/theme';
 import { useTheme } from '@/core/theme/useTheme';
 import { useSessionStore } from '@/features/auth/application/sessionStore';
 import { useMonitoringStore } from '@/features/monitoring/application/monitoringStore';
+import { usePumpTimerStore } from '@/features/settings/application/pumpTimerStore';
 import { StandardSync } from '@/features/settings/application/standardStore';
 
 void SplashScreen.preventAutoHideAsync();
@@ -43,9 +44,12 @@ export default function RootLayout() {
   }, [ready, migrationError]);
 
   // The transport (and its disconnection watchdog) lives for the whole
-  // session, regardless of which tab is on top.
+  // session, regardless of which tab is on top. The pump timers are read
+  // once here, so a cycle started from Home runs on the saved times.
   useEffect(() => {
-    if (ready) useMonitoringStore.getState().ensureTransport();
+    if (!ready) return;
+    useMonitoringStore.getState().ensureTransport();
+    void usePumpTimerStore.getState().load();
   }, [ready]);
 
   const signedIn = account != null;

@@ -19,12 +19,18 @@ import { acceptanceRate } from '@/features/monitoring/data/batchRepository';
 
 import { useMonitoringStore, useTransportStatus } from '../application/monitoringStore';
 import { useActiveBatch, useLiveEvaluation, useUnreadAlertCount } from '../application/queries';
-import { deviceDisplayName, isConnected, type TransportStatus } from '../data/transport/sensorTransport';
+import {
+  deviceDisplayName,
+  isConnected,
+  isControllable,
+  type TransportStatus,
+} from '../data/transport/sensorTransport';
 import type { Batch } from '../domain/batch';
 import { parameterOf, type ParameterEvaluation, type QualityEvaluation } from '../domain/qualityEvaluation';
 import { EvaluationBanner } from './widgets/AssessmentBanner';
 import { ConnectionPill } from './widgets/ConnectionPill';
 import { MACHINE_READOUTS, MachinePanel } from './widgets/MachinePanel';
+import { PumpCycleCard } from './widgets/PumpCycleCard';
 import { SensorCard } from './widgets/SensorCard';
 import { StageTimeline } from './widgets/StageTimeline';
 
@@ -88,6 +94,8 @@ export function HomeScreen() {
         <SectionHeading eyebrow="THE MACHINE" title="Right now" />
         <View style={{ height: 12 }} />
         <MachinePanel />
+        <View style={{ height: 12 }} />
+        <PumpCycleCard />
         <View style={{ height: 22 }} />
 
         {evaluation != null ? (
@@ -185,18 +193,27 @@ export function SectionHeading({
 /**
  * The active batch: its code, stage and progress, with the controls to open
  * or close one by hand.
+ *
+ * A machine the app can command is started from the pump cycle card, which
+ * opens the batch itself; a second Start here would only be a way to record
+ * without pumping. So the manual Start is offered only for a machine that
+ * streams readings but takes no commands.
  */
 function BatchCard({ batch, status }: { batch: Batch | null; status: TransportStatus }) {
   const { scheme } = useTheme();
   const busy = useMonitoringStore((s) => s.busy);
   const startBatch = useMonitoringStore((s) => s.startBatch);
   const finishBatch = useMonitoringStore((s) => s.finishBatch);
+  const cycleRunning = useMonitoringStore((s) => s.cycle.phase === 'running');
+  const manualStart = isConnected(status) && !isControllable(status);
 
   const confirmFinish = () => {
     if (!batch) return;
     Alert.alert(
       `Finish ${batch.code}?`,
-      'The batch closes and its quality assessment is frozen onto the record. Later readings start a new batch.',
+      cycleRunning
+        ? 'The pumps stop, the batch closes and its quality assessment is frozen onto the record.'
+        : 'The batch closes and its quality assessment is frozen onto the record. Later readings start a new batch.',
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Finish batch', onPress: () => void finishBatch() },
@@ -229,21 +246,25 @@ function BatchCard({ batch, status }: { batch: Batch | null; status: TransportSt
             </Text>
           </View>
           {batch == null ? (
-            <Button
-              variant="tonal"
-              compact
-              label="Start"
-              icon="play-arrow"
-              disabled={busy || !isConnected(status)}
-              onPress={() => void startBatch()}
-            />
+            manualStart && (
+              <Button
+                variant="tonal"
+                compact
+                label="Start"
+                icon="play-arrow"
+                disabled={busy}
+                onPress={() => void startBatch()}
+              />
+            )
           ) : (
             <Button variant="tonal" compact label="Finish" icon="stop" disabled={busy} onPress={confirmFinish} />
           )}
         </View>
         <Text variant="bodySmall" color={scheme.onSurfaceVariant} style={{ marginTop: 14 }}>
           {batch == null
-            ? 'A batch opens automatically when the machine starts a filtration cycle.'
+            ? manualStart
+              ? 'A batch opens automatically when the machine starts a filtration cycle.'
+              : 'Starting the pump cycle opens a batch. One also opens when the machine reports a cycle of its own.'
             : `Started ${formatHm(batch.startedAt)} · ${batch.readingCount} readings captured`}
         </Text>
         {batch != null && (

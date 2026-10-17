@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { readPumpTimers } from '@/features/settings/application/pumpTimerStore';
 import { readActiveStandard } from '@/features/settings/application/standardStore';
 
 import { BleSensorTransport } from '../data/transport/bleSensorTransport';
@@ -13,7 +14,15 @@ import {
 } from '../data/transport/sensorTransport';
 import { SimulatedSensorTransport } from '../data/transport/simulatedSensorTransport';
 import type { Batch } from '../domain/batch';
+import {
+  IDLE_CYCLE,
+  isCycleRunning,
+  pumpLabel,
+  readingDuringCycle,
+  type PumpCycle,
+} from '../domain/pumpCycle';
 import type { SensorReading } from '../domain/sensorReading';
+import { PumpSequencer } from './pumpSequencer';
 import { alertRepository, batchRepository, batchSession, readingRepository, sampleDataSeeder } from './services';
 
 /** Which device feed the app is reading from. */
@@ -37,6 +46,8 @@ interface MonitoringState {
   recording: boolean;
   /** The most recent packet, whether or not it was recorded. */
   liveReading: SensorReading | null;
+  /** The pump cycle the app is running on the machine. */
+  cycle: PumpCycle;
   /** Status of the last action the UI triggered. */
   busy: boolean;
   error: string | null;
@@ -51,8 +62,14 @@ interface MonitoringState {
   stopScan(): Promise<void>;
   connect(device: DiscoveredDevice): Promise<void>;
   disconnect(): Promise<void>;
-  /** Opens a batch by hand, for firmware that never reports a stage. */
+  /** Opens a batch by hand, for a machine the app cannot run itself. */
   startBatch(): Promise<void>;
+  /** Runs the four pumps in turn, each for its set time, and opens a batch for the run. */
+  startCycle(): Promise<void>;
+  /** Cuts the running pump short and starts the next one at once. */
+  skipPump(): Promise<void>;
+  /** Switches every pump off and ends the cycle where it is. */
+  stopCycle(): Promise<void>;
   /** Closes the open batch and freezes its verdict. */
   finishBatch(notes?: string): Promise<void>;
   saveNotes(batch: Batch, notes: string): Promise<void>;
@@ -74,6 +91,23 @@ interface MonitoringState {
 let subscriptions: Unsubscribe[] = [];
 let previousState: TransportState | null = null;
 let restored: Promise<void> | null = null;
+let sessionWork: Promise<unknown> = Promise.resolve();
+
+/**
+ * Runs batch-session work one job at a time.
+ *
+ * Starting a pump makes the machine answer with a reading straight away, and
+ * that reading can open a batch by itself. Without this, it and the cycle's
+ * own "open a batch" would race, and both would create one.
+ */
+function inSession<T>(work: () => Promise<T>): Promise<T> {
+  const run = sessionWork.then(async () => {
+    await restored;
+    return work();
+  });
+  sessionWork = run.catch(() => undefined);
+  return run;
+}
 
 function buildTransport(kind: TransportKind): SensorTransport {
   switch (kind) {
@@ -99,6 +133,22 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => {
     }
   };
 
+  const openBatch = () =>
+    inSession(() => {
+      const device = get().status.device;
+      return batchSession.start({
+        deviceId: device?.id,
+        deviceName: device ? (device.name || device.id) : null,
+      });
+    });
+
+  const sequencer = new PumpSequencer({
+    send: (command) => get().ensureTransport().send(command),
+    onChange: (cycle) => set({ cycle }),
+    // The cycle is the process: once pump 4 has run, the batch it opened is done.
+    onComplete: () => inSession(() => batchSession.finish()),
+  });
+
   const attach = (transport: SensorTransport) => {
     for (const unsubscribe of subscriptions) unsubscribe();
     subscriptions = [];
@@ -114,7 +164,10 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => {
         void watchdog(status);
       }),
       transport.onDiscovered((discovered) => set({ discovered })),
-      transport.onReading((reading) => {
+      transport.onReading((packet) => {
+        // While the app drives the pumps it knows the stage, even when the
+        // firmware does not say.
+        const reading = readingDuringCycle(packet, sequencer.cycle);
         void (async () => {
           await restored;
           if (get().recording) {
@@ -123,7 +176,7 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => {
             // dashboard is better served by a screen that still updates than
             // by one that froze because a single insert failed.
             try {
-              await batchSession.handle(reading);
+              await inSession(() => batchSession.handle(reading));
             } catch (error) {
               console.warn('Failed to file reading', error);
             }
@@ -137,12 +190,22 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => {
   /**
    * Raises a disconnection alert when the link drops, and a machine error
    * when the transport reports one. Runs regardless of which screen is up.
+   *
+   * A cycle running when the link drops ends there: no further command can
+   * reach the machine, and its own timer switches the running pump off.
    */
   const watchdog = async (status: TransportStatus) => {
     const dropped =
       previousState === 'connected' &&
       status.state !== 'connected' &&
       status.state !== 'connecting';
+
+    const pump = sequencer.cycle.activePump;
+    if (dropped && sequencer.isRunning) {
+      sequencer.abandon(
+        `The link dropped during ${pump == null ? 'the cycle' : pumpLabel(pump).toLowerCase()}. Reconnect and start again.`,
+      );
+    }
 
     if (dropped) await batchSession.reportDisconnection();
     if (status.state === 'error') {
@@ -159,6 +222,7 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => {
     discovered: [],
     recording: true,
     liveReading: null,
+    cycle: IDLE_CYCLE,
     busy: false,
     error: null,
 
@@ -180,7 +244,16 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => {
       const old = get().transport;
       for (const unsubscribe of subscriptions) unsubscribe();
       subscriptions = [];
-      if (old) void old.dispose();
+
+      // The pumps are told to stop over the old link before it goes. The
+      // sequencer cannot do it: by the time it sent, the store would hold the
+      // new transport.
+      let stopping: Promise<unknown> = Promise.resolve();
+      if (sequencer.isRunning) {
+        sequencer.abandon('Stopped because the data source was switched.');
+        if (old) stopping = old.send({ type: 'pumpOff' }).catch(() => undefined);
+      }
+      if (old) void stopping.finally(() => old.dispose());
 
       const transport = buildTransport(kind);
       attach(transport);
@@ -199,22 +272,31 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => {
     scan: () => guarded(() => get().ensureTransport().startScan()),
     stopScan: () => get().ensureTransport().stopScan(),
     connect: (device) => guarded(() => get().ensureTransport().connect(device)),
-    disconnect: () => guarded(() => get().ensureTransport().disconnect()),
+    disconnect: () =>
+      guarded(async () => {
+        // Pumps off first, while there is still a link to say it over.
+        if (sequencer.isRunning) await sequencer.stop('Stopped when the machine was disconnected.');
+        await get().ensureTransport().disconnect();
+      }),
 
-    startBatch: () =>
+    startBatch: () => guarded(openBatch),
+
+    startCycle: () =>
       guarded(async () => {
         await restored;
-        const device = get().status.device;
-        await batchSession.start({
-          deviceId: device?.id,
-          deviceName: device ? (device.name || device.id) : null,
-        });
+        const cycle = await sequencer.start(readPumpTimers());
+        // Opened once pump 1 is confirmed running, so a machine that cannot
+        // be reached does not leave an empty batch behind.
+        if (isCycleRunning(cycle)) await openBatch();
       }),
+
+    skipPump: () => sequencer.skip(),
+    stopCycle: () => sequencer.stop(),
 
     finishBatch: (notes) =>
       guarded(async () => {
-        await restored;
-        await batchSession.finish({ notes });
+        if (sequencer.isRunning) await sequencer.stop('Stopped when the batch was finished.');
+        await inSession(() => batchSession.finish({ notes }));
       }),
 
     saveNotes: (batch, notes) => guarded(() => batchRepository.update({ ...batch, notes })),
@@ -251,3 +333,4 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => {
 
 export const useTransportStatus = () => useMonitoringStore((s) => s.status);
 export const useLiveReading = () => useMonitoringStore((s) => s.liveReading);
+export const usePumpCycle = () => useMonitoringStore((s) => s.cycle);

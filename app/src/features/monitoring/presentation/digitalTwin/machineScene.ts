@@ -84,6 +84,8 @@ export const FLOW_PIXELS_PER_SECOND = 22.2;
  */
 export interface FlowRoute {
   readonly id: string;
+  /** The pump that drives honey along this route, 1–4. */
+  readonly pump: number;
   /** The flow-front index at or beyond which honey moves along this route. */
   readonly activeFrom: number;
   readonly path: string;
@@ -98,8 +100,9 @@ export interface FlowRoute {
 }
 
 /** An exposed pipe run: full weight, brighter, matching the 8px pipe bore. */
-const exposed = (id: string, activeFrom: number, path: string): FlowRoute => ({
+const exposed = (id: string, pump: number, activeFrom: number, path: string): FlowRoute => ({
   id,
+  pump,
   activeFrom,
   path,
   dashOn: 11,
@@ -116,8 +119,9 @@ const exposed = (id: string, activeFrom: number, path: string): FlowRoute => ({
  * A transfer hidden inside the machine: slightly thinner and dimmer, so it
  * reads as internal movement rather than a visible pipe.
  */
-const internal = (id: string, activeFrom: number, path: string): FlowRoute => ({
+const internal = (id: string, pump: number, activeFrom: number, path: string): FlowRoute => ({
   id,
+  pump,
   activeFrom,
   path,
   dashOn: 9,
@@ -133,23 +137,23 @@ const internal = (id: string, activeFrom: number, path: string): FlowRoute => ({
 /** The eight registered flow routes, in process order. */
 export const FLOW_ROUTES: readonly FlowRoute[] = [
   // 1 — hopper outlet down into P1.
-  exposed('hopper_to_p1', 1, 'M 170 273 H 190 V 335 H 270'),
+  exposed('hopper_to_p1', 1, 1, 'M 170 273 H 190 V 335 H 270'),
   // 2 — P1 up into Filter 1.
-  exposed('p1_to_filter1', 2, 'M 336 335 H 390 V 315 H 425'),
+  exposed('p1_to_filter1', 1, 2, 'M 336 335 H 390 V 315 H 425'),
   // 3 — Filter 1 down into P2, internal.
-  internal('filter1_to_p2', 2, 'M 410 266 V 300 C 410 320 420 335 440 335'),
+  internal('filter1_to_p2', 2, 2, 'M 410 266 V 300 C 410 320 420 335 440 335'),
   // 4 — P2 up into Filter 2.
-  exposed('p2_to_filter2', 3, 'M 505 335 H 560 V 315 H 595'),
+  exposed('p2_to_filter2', 2, 3, 'M 505 335 H 560 V 315 H 595'),
   // 5 — Filter 2 down into P3, internal.
-  internal('filter2_to_p3', 3, 'M 580 266 V 300 C 580 320 590 335 610 335'),
+  internal('filter2_to_p3', 3, 3, 'M 580 266 V 300 C 580 320 590 335 610 335'),
   // 6 — P3 up into Filter 3.
-  exposed('p3_to_filter3', 4, 'M 675 335 H 730 V 315 H 765'),
+  exposed('p3_to_filter3', 3, 4, 'M 675 335 H 730 V 315 H 765'),
   // 7 — Filter 3 down into P4, internal.
-  internal('filter3_to_p4', 4, 'M 750 266 V 300 C 750 320 760 335 780 335'),
+  internal('filter3_to_p4', 4, 4, 'M 750 266 V 300 C 750 320 760 335 780 335'),
   // 8 — P4 out to the jar. The pack splits this into the exact exposed pipe
   // plus a short conceptual nozzle into the jar; the combined path is drawn
   // as one exposed route, which is within a pixel of the split rendering.
-  exposed('p4_to_output_jar', 5, 'M 845 335 H 930 V 305 H 965 C 972 305 979 309 982 318'),
+  exposed('p4_to_output_jar', 4, 5, 'M 845 335 H 930 V 305 H 965 C 972 305 979 309 982 318'),
 ];
 
 // ------------------------------------------------- control panel slots ---

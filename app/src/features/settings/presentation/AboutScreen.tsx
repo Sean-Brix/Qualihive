@@ -45,7 +45,7 @@ export function AboutScreen() {
         />
         <Section
           title="What it does not do"
-          body="The app assesses honey against the selected quality parameters. It does not establish authenticity or purity, and it does not replace laboratory testing. It monitors and records; it does not operate the machine."
+          body="The app assesses honey against the selected quality parameters. It does not establish authenticity or purity, and it does not replace laboratory testing. It runs the machine's four pumps in turn and records what the sensors report."
         />
         <Section
           title="Offline by design"

@@ -29,10 +29,10 @@ import WarningOverlay from '@assets/honey_machine/warning_error_overlay.svg';
 
 import {
   filterActive,
-  flowFront,
   isAnimated,
   isRunning,
   pumpActive,
+  routeActive,
   semanticLabel,
   showsOnline,
   startLatched,
@@ -162,8 +162,8 @@ export function MachineDigitalTwin({ state }: { state: MachineVisualState }) {
   );
 
   const online = showsOnline(state, new Date());
-  const front = flowFront(state);
   const runningNow = isRunning(state);
+  const routes = FLOW_ROUTES.filter((route) => routeActive(state, route));
 
   return (
     <View
@@ -214,7 +214,7 @@ export function MachineDigitalTwin({ state }: { state: MachineVisualState }) {
 
           {/* Honey moving through the pipes. Paused keeps the honey visible
               but dimmed, so a held cycle looks held rather than finished. */}
-          <FlowLayer front={front} intensity={runningNow ? 1 : 0.45} phase={flowPhase} />
+          <FlowLayer routes={routes} intensity={runningNow ? 1 : 0.45} phase={flowPhase} />
 
           {/* Filter media, tinted while that stage is processing. */}
           {filterActive(state, 1) && (
@@ -484,15 +484,16 @@ function Vessel({
  * system rather than each pipe running at its own speed.
  */
 function FlowLayer({
-  front,
+  routes,
   intensity,
   phase,
 }: {
-  front: number;
+  /** The routes honey is moving along right now. */
+  routes: readonly FlowRoute[];
   intensity: number;
   phase: SharedValue<number>;
 }) {
-  if (intensity <= 0.01 || front <= 0) return null;
+  if (intensity <= 0.01 || routes.length === 0) return null;
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -502,7 +503,7 @@ function FlowLayer({
             <FeGaussianBlur stdDeviation="2.1" />
           </Filter>
         </Defs>
-        {FLOW_ROUTES.filter((route) => front >= route.activeFrom).map((route) => (
+        {routes.map((route) => (
           <RouteStrokes key={route.id} route={route} intensity={intensity} phase={phase} />
         ))}
       </Svg>

@@ -82,11 +82,37 @@ a parameter deletes the override rather than writing the default back.
 
 Defaults are in [qualitySpec.ts](src/features/monitoring/domain/qualitySpec.ts).
 
+## Pump cycle
+
+The machine moves honey in four hops, each driven by its own pump:
+
+| Pump | Moves honey | Stage it stands for |
+| ---- | ----------- | ------------------- |
+| 1 | Hopper → Filter 1 | Extracting |
+| 2 | Filter 1 → Filter 2 | Primary filtration |
+| 3 | Filter 2 → Filter 3 | Secondary filtration |
+| 4 | Filter 3 → Jar | Quality assessment |
+
+**Start cycle** on Home runs them **one at a time, in order**: pump 1 for its
+set time, then pump 2, 3 and 4. **Skip** ends the running pump at once and
+starts the next (on pump 4 it finishes the cycle); **Stop** switches every pump
+off. Each pump's time is set in **More → Pump timers** (default 1 min, 5 s to
+2 h); a running cycle keeps the times it started with.
+
+The phone is the sequencer — it sends the next command when each timer runs
+out — and every command also carries the pump's duration, so the firmware can
+switch a pump off by itself if the link drops or the phone sleeps. Losing the
+link ends the cycle; reconnect and start again. The logic is in
+[pumpCycle.ts](src/features/monitoring/domain/pumpCycle.ts) (pure rules) and
+[pumpSequencer.ts](src/features/monitoring/application/pumpSequencer.ts)
+(timers and commands).
+
 ## Batches
 
-A batch opens automatically when the machine starts a cycle — or by hand, for
-firmware that never reports a stage — and closes when the machine reports
-`COMPLETED`. Closing freezes the verdict onto the record along with the
+Starting the pump cycle opens a batch, and it closes once pump 4 has run.
+Without the app driving the pumps, a batch opens automatically when the machine
+reports a cycle of its own — or by hand, for a machine that takes no commands
+and never reports a stage — and closes when the machine reports `COMPLETED`. Closing freezes the verdict onto the record along with the
 thresholds it was graded against. The batch verdict is computed from the
 **mean of the readings taken during the quality-assessment stage**; weight is
 carried as the session total.
@@ -124,6 +150,52 @@ whose `type` is not a sensor update is skipped. The parser and the BLE
 reassembly buffer are in
 [readingParser.ts](src/features/monitoring/data/readingParser.ts).
 
+While the app is running a pump, a packet with no `stage` is filed under that
+pump's stage. Send `machine_status` as `RUNNING` while a pump runs and `READY`
+when none does — without it every packet parses as running, and a packet that
+arrives after a cycle has finished opens a new batch.
+
+### Commands from the app
+
+Pump commands arrive as **one JSON object per command, terminated by `\n`**,
+written to the Nordic UART **RX characteristic
+`6e400002-b5a3-f393-e0a9-e50e24dcca9e`**. A long command may arrive split
+across several writes, so buffer until the newline, as the app does for
+readings. If that characteristic is missing, the app writes to the first
+writable characteristic on the service readings arrive on; a board with none
+still connects, but the pump controls stay disabled.
+
+```json
+{"type":"pump_on","pump":2,"duration_s":90}
+{"type":"pump_off"}
+```
+
+- `pump_on` — run **only** that pump (1–4), switching off any other, and
+  **switch it off by yourself after `duration_s` seconds** even if no further
+  command arrives. The app sends the next `pump_on` when the time is up, or
+  early on Skip.
+- `pump_off` — switch every pump off. Sent on Stop, after pump 4, and before
+  the app disconnects.
+- On a BLE disconnect, switch every pump off.
+
+A minimal Arduino handler (ArduinoJson):
+
+```cpp
+void onCommand(const String& line) {
+  JsonDocument doc;
+  if (deserializeJson(doc, line)) return;
+  allPumpsOff();
+  if (doc["type"] == "pump_on") {
+    int pump = doc["pump"];
+    startPump(pump);
+    pumpOffAt = millis() + doc["duration_s"].as<unsigned long>() * 1000UL;
+  }
+}
+// In loop(): if (pumpRunning() && (long)(millis() - pumpOffAt) >= 0) allPumpsOff();
+```
+
+The encoder is [machineCommand.ts](src/features/monitoring/data/machineCommand.ts).
+
 ## Layout
 
 ```
@@ -132,7 +204,7 @@ app/                            expo-router routes (thin wrappers over screens)
   sign-in.tsx
   (tabs)/                       Home · Live · Statistics · History · More
     history/[code].tsx          batch detail
-    more/*.tsx                  notifications, device, reference-values, profile, about
+    more/*.tsx                  notifications, device, reference-values, pump-timers, profile, about
 src/
   core/
     database/                   drizzle schema + expo-sqlite client
@@ -141,9 +213,9 @@ src/
   features/
     auth/                       single admin account, session store
     monitoring/
-      domain/                   entities, machine state, the quality standard, simulator physics
-      data/                     repositories, packet parser, BLE + simulated transports, seeder
-      application/              BatchSession (the orchestrator), stores, live-query hooks
+      domain/                   entities, machine state, pump cycle, the quality standard, simulator physics
+      data/                     repositories, packet parser + command encoder, BLE + simulated transports, seeder
+      application/              BatchSession (the orchestrator), PumpSequencer, stores, live-query hooks
       presentation/             Home, Live, Device, digital twin, shared widgets
     history/  statistics/  notifications/  settings/
 drizzle/                        generated SQL migrations (drizzle-kit)
@@ -151,11 +223,13 @@ assets/                         branding, illustrations, honey_machine SVGs, ani
 docs/                           project specification and component drawings
 ```
 
-Two seams carry the design, as in the Flutter build:
+Three seams carry the design — the first two as in the Flutter build:
 
 - **`SensorTransport`** — grading, storage and UI never learn how bytes arrive.
 - **`BatchSession`** — files readings into batches, grades them and raises
   alerts. A plain class, so the lifecycle is tested without a device.
+- **`PumpSequencer`** — runs the four pumps in turn over the transport. Also a
+  plain class; the timing rules it follows are pure functions in `pumpCycle.ts`.
 
 ## Running it
 
@@ -202,8 +276,11 @@ Profiles are in `eas.json`.
 2. Any nearby BLE device should appear — earbuds, a watch — which proves the
    radio and permissions work even before the ESP32 is nearby.
 3. With the ESP32 advertising the Nordic UART service, tap it. The pill turns
-   green; the first packet lights up Home and Live. If the firmware sends no
-   `stage`, tap **Start** on Home to open a batch by hand.
+   green; the first packet lights up Home and Live.
+4. Tap **Start cycle** on Home and watch the pumps switch over as each timer
+   runs out; try **Skip** and **Stop**. If the firmware exposes no writable
+   characteristic, the pump controls stay disabled and **Start** on the batch
+   card opens a batch by hand instead.
 
 Other scripts:
 ```bash
@@ -214,16 +291,20 @@ npx drizzle-kit generate     # after editing src/core/database/schema.ts
 ```
 
 **On an emulator, switch More → Machine connection to "Simulator".** Emulators
-have no Bluetooth radio. The simulator walks the full filtration sequence and
-puts one parameter out of range on every third run, so batches, alerts and all
-three recommendations are reachable in a demo. **More → Load sample data**
+have no Bluetooth radio. The simulator behaves as the firmware should: it sits
+idle until **Start cycle** runs its pumps, switches each pump off itself when
+its time is up, loads a fresh lot of honey whenever pump 1 starts and fills the
+jar while pump 4 runs. It puts one parameter out of range on every third lot,
+so batches, alerts and all three recommendations are reachable in a demo. **More → Load sample data**
 writes a season of generated batches for the charts.
 
 ## Notes and limitations
 
 - **Notifications are in-app.** The phone's system tray is not used; posting
   there while the BLE link is live would need a foreground service.
-- **Monitoring only.** The app does not start, stop or control the machine.
+- **The phone keeps the pump timers.** Keep the app open during a cycle. If
+  Android suspends it, the next pump starts late — the running pump still
+  stops on time, provided the firmware honours `duration_s`.
 - **One account.** Sign in as `admin` / `123456`. There is no sign-up and
   no password change; the credentials are fixed in
   [account.ts](src/features/auth/domain/account.ts).
