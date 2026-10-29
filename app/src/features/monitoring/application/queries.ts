@@ -16,10 +16,10 @@ import {
   hopperLevelDuringCycle,
   type MachineVisualState,
 } from '../domain/machineVisualState';
-import { isCycleRunning, stageForPump } from '../domain/pumpCycle';
+import { pumpsOn, stageForPumps } from '../domain/pumpCycle';
 import { assessmentOf, evaluateReading, type QualityEvaluation } from '../domain/qualityEvaluation';
 import type { SensorReading } from '../domain/sensorReading';
-import { useLiveReading, usePumpCycle, useTransportStatus } from './monitoringStore';
+import { useLiveReading, usePumpCycle, usePumpSwitches, useTransportStatus } from './monitoringStore';
 
 /**
  * Reactive reads of the database — the equivalent of drift's `watch()`
@@ -99,37 +99,41 @@ export function useLiveEvaluation(): QualityEvaluation | null {
  * reports a stage only when it changes, so the twin keeps showing the cycle
  * between packets instead of dropping back to idle.
  *
- * While the app is running the pump cycle, the cycle outranks both: the app
- * knows which pump it started, whether or not a packet has said so yet.
+ * While the app has pumps on, by the cycle or by hand, those pumps outrank
+ * both: the app knows what it switched on, whether or not a packet has said
+ * so yet.
  */
 export function useMachineVisual(): MachineVisualState {
   const status = useTransportStatus();
   const reading = useLiveReading();
   const cycle = usePumpCycle();
+  const switches = usePumpSwitches();
   const { data: batch } = useActiveBatch();
   const evaluation = useLiveEvaluation();
 
   const connected = isConnected(status);
-  const pump = connected && isCycleRunning(cycle) ? cycle.activePump : null;
-  // Pump 1 drains the hopper over its run, so the drawing needs a clock then.
-  const now = useNow(1000, pump === 1);
+  const pumps = useMemo(() => (connected ? pumpsOn(switches) : []), [connected, switches]);
+  // Pump 1 drains the hopper over the cycle's first step, so the drawing
+  // needs a clock then.
+  const now = useNow(1000, connected && cycle.phase === 'running' && cycle.activePump === 1);
 
   return useMemo(() => {
     const reported =
       reading?.machineStatus ?? batch?.machineStatus ?? (connected ? 'connected' : 'disconnected');
+    const driving = pumps.length > 0;
     // A fault or a pause the machine reports still shows through.
-    const driving = pump != null && reported !== 'error' && reported !== 'paused';
+    const running = driving && reported !== 'error' && reported !== 'paused';
 
     return deriveVisualState({
       connected,
-      status: driving ? 'running' : reported,
-      stage: pump != null ? stageForPump(pump) : (reading?.stage ?? batch?.stage ?? 'idle'),
-      activePump: pump,
-      hopperLevel: pump == null ? null : hopperLevelDuringCycle(cycle, now),
+      status: running ? 'running' : reported,
+      stage: driving ? stageForPumps(pumps) : (reading?.stage ?? batch?.stage ?? 'idle'),
+      activePumps: pumps,
+      hopperLevel: connected ? hopperLevelDuringCycle(cycle, now) : null,
       weightKg: reading?.weightKg,
       flowLpm: reading?.flowLpm,
       assessment: evaluation ? assessmentOf(evaluation) : null,
       lastReadingAt: reading?.recordedAt,
     });
-  }, [connected, pump, cycle, now, reading, batch, evaluation]);
+  }, [connected, pumps, cycle, now, reading, batch, evaluation]);
 }

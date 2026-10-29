@@ -2,7 +2,7 @@ import { SeededRandom } from '@/core/utils/random';
 
 import { BatchRun } from '../../domain/batchRun';
 import { HONEY_TROUBLES, randomProfile, type HoneyTrouble } from '../../domain/honeyProfile';
-import { stageForPump, type MachineCommand, type PumpNumber } from '../../domain/pumpCycle';
+import { PUMPS, stageForPumps, type MachineCommand, type PumpNumber } from '../../domain/pumpCycle';
 import type { SensorReading } from '../../domain/sensorReading';
 import {
   DISCONNECTED,
@@ -31,12 +31,19 @@ export interface SimulatedTransportOptions {
   seed?: number;
 }
 
-/** The pump the machine is running, and when it switches itself off. */
+/** One pump that is on, and when it switches itself off. */
 interface RunningPump {
-  readonly pump: PumpNumber;
   readonly startedAt: number;
   readonly durationMs: number;
 }
+
+/**
+ * The longest pump 4 takes to carry a lot into the jar. Within that the jar
+ * fills over pump 4's own time, so a cycle always ends with a full jar; the
+ * cap is for a pump switched on by hand, which comes with the two-hour
+ * safety limit as its time.
+ */
+const MAX_JAR_FILL_MS = 2 * 60_000;
 
 /**
  * A fake device that behaves like the real one.
@@ -46,11 +53,12 @@ interface RunningPump {
  * controls without hardware.
  *
  * It follows the app's pump commands the way the firmware is meant to: idle
- * until told to run a pump, one pump at a time, and every pump switching
- * itself off when its duration runs out, whether or not another command
- * arrives. Running pump 1 loads a fresh lot of honey into the hopper; pump 4
- * carries it into the jar. Every third lot carries a defect, so a demo
- * reaches every verdict the app can produce.
+ * until told to run a pump, each pump switched on and off on its own, and
+ * every pump switching itself off when its duration runs out, whether or not
+ * another command arrives. Pump 1 starting after the last lot reached the
+ * jar loads a fresh lot of honey into the hopper; pump 4 carries it into the
+ * jar. Every third lot carries a defect, so a demo reaches every verdict the
+ * app can produce.
  *
  * The physics live in [BatchRun]; this class is only the transport around it,
  * which is what lets a seeded demo archive and a live demo run produce the
@@ -74,8 +82,9 @@ export class SimulatedSensorTransport implements SensorTransport {
   private device: DiscoveredDevice | null = null;
   private run: BatchRun | null = null;
   private runCount = 0;
-  private running: RunningPump | null = null;
-  /** Share of the current lot already in the jar, banked whenever pump 4 stops. */
+  /** Pump 1 first; null for a pump that is off. */
+  private running: (RunningPump | null)[] = PUMPS.map(() => null);
+  /** Share of the current lot already in the jar, banked whenever pump 4 stops or restarts. */
   private jarShare = 0;
   private disposed = false;
 
@@ -129,7 +138,7 @@ export class SimulatedSensorTransport implements SensorTransport {
     if (this.disposed) return;
 
     this.device = device;
-    this.running = null;
+    this.running = PUMPS.map(() => null);
     if (this.run == null) this.startRun();
     this.emit({ state: 'connected', device, message: null, controllable: true });
 
@@ -142,7 +151,7 @@ export class SimulatedSensorTransport implements SensorTransport {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
     // Like the firmware should, a machine that loses its link stops pumping.
-    this.switchOff(Date.now());
+    for (const pump of PUMPS) this.switchOff(pump, Date.now());
     this.device = null;
     this.emit(DISCONNECTED);
   }
@@ -155,16 +164,19 @@ export class SimulatedSensorTransport implements SensorTransport {
     if (this.disposed || this.device == null) throw new Error('Not connected to a machine.');
 
     const now = Date.now();
-    this.switchOff(now);
+    this.expire(now);
 
     if (command.type === 'pumpOn') {
-      // Pump 1 draws from the hopper, so a cycle starting over is a new lot.
-      if (command.pump === 1) this.startRun();
-      this.running = {
-        pump: command.pump,
+      // Pump 1 draws from the hopper. Once the last lot has reached the jar,
+      // the hopper holds a new one; until then it is the same lot, carrying on.
+      if (command.pump === 1 && this.running[0] == null && this.jarShare > 0) this.startRun();
+      this.switchOff(command.pump, now);
+      this.running[command.pump - 1] = {
         startedAt: now,
         durationMs: Math.max(0, command.durationSeconds) * 1000,
       };
+    } else {
+      for (const pump of command.pump == null ? PUMPS : [command.pump]) this.switchOff(pump, now);
     }
 
     // Report the change straight away rather than at the next tick, as
@@ -203,16 +215,17 @@ export class SimulatedSensorTransport implements SensorTransport {
 
   /** The jar share at [now], counting pump 4's progress while it runs. */
   private jarShareAt(now: number): number {
-    const running = this.running;
-    if (running == null || running.pump !== 4) return this.jarShare;
-    if (running.durationMs <= 0) return 1;
+    const running = this.running[3];
+    if (running == null) return this.jarShare;
+    const fillMs = Math.min(running.durationMs, MAX_JAR_FILL_MS);
+    if (fillMs <= 0) return 1;
     const elapsed = Math.min(now, running.startedAt + running.durationMs) - running.startedAt;
-    return Math.min(1, this.jarShare + elapsed / running.durationMs);
+    return Math.min(1, this.jarShare + elapsed / fillMs);
   }
 
-  private switchOff(now: number): void {
-    this.jarShare = this.jarShareAt(now);
-    this.running = null;
+  private switchOff(pump: PumpNumber, now: number): void {
+    if (pump === 4) this.jarShare = this.jarShareAt(now);
+    this.running[pump - 1] = null;
   }
 
   /**
@@ -220,8 +233,14 @@ export class SimulatedSensorTransport implements SensorTransport {
    * itself off, whether or not the app is still there to say so.
    */
   private expire(now: number): void {
-    const running = this.running;
-    if (running != null && now >= running.startedAt + running.durationMs) this.switchOff(now);
+    for (const pump of PUMPS) {
+      const running = this.running[pump - 1];
+      if (running != null && now >= running.startedAt + running.durationMs) this.switchOff(pump, now);
+    }
+  }
+
+  private pumpsRunning(): PumpNumber[] {
+    return PUMPS.filter((pump) => this.running[pump - 1] != null);
   }
 
   private sample(): void {
@@ -235,7 +254,7 @@ export class SimulatedSensorTransport implements SensorTransport {
     this.readingEmitter.emit(
       this.run!.driven({
         at: new Date(now),
-        stage: this.running == null ? 'idle' : stageForPump(this.running.pump),
+        stage: stageForPumps(this.pumpsRunning()),
         transferred: this.jarShareAt(now),
         deviceId: device.id,
         deviceName: deviceDisplayName(device),

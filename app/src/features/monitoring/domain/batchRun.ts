@@ -167,7 +167,6 @@ export class BatchRun {
       batchId: options.batchId ?? null,
       // Properties of the honey: the lot's own value plus sensor noise.
       ph: round(this.profile.ph + this.noise(0.012), 2),
-      moisture: round(this.profile.moisture + this.noise(0.09), 1),
       electricalConductivity: round(this.profile.electricalConductivity + this.noise(0.015), 2),
       color: this.colorFor(this.profile.colorPfund + this.noise(0.8)),
       // Properties of the run: these move as the cycle progresses.

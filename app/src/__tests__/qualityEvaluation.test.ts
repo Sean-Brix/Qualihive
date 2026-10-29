@@ -22,10 +22,9 @@ import {
 import { makeReading } from '@/features/monitoring/domain/sensorReading';
 
 /** A reading sitting in the middle of every accepted band. */
-function reading(overrides: Partial<Record<'ph' | 'moisture' | 'temperature' | 'conductivity' | 'turbidity' | 'colorPfund' | 'weight', number | null>> = {}) {
+function reading(overrides: Partial<Record<'ph' | 'temperature' | 'conductivity' | 'turbidity' | 'colorPfund' | 'weight', number | null>> = {}) {
   const v = {
     ph: 3.85,
-    moisture: 23.9,
     temperature: 31,
     conductivity: 1.9,
     turbidity: 5,
@@ -36,7 +35,6 @@ function reading(overrides: Partial<Record<'ph' | 'moisture' | 'temperature' | '
   return makeReading({
     recordedAt: new Date(2026, 7, 23, 12),
     ph: v.ph,
-    moisture: v.moisture,
     temperatureC: v.temperature,
     electricalConductivity: v.conductivity,
     turbidity: v.turbidity,
@@ -65,7 +63,7 @@ describe('parameter grading', () => {
   });
 
   test('the bounds themselves are inside the accepted range', () => {
-    const spec = specOf(DEFAULT_STANDARD, 'moisture');
+    const spec = specOf(DEFAULT_STANDARD, 'electricalConductivity');
     expect(evaluateSpec(spec, spec.min)).toBe('acceptable');
     expect(evaluateSpec(spec, spec.max)).toBe('acceptable');
   });
@@ -93,7 +91,7 @@ describe('overall assessment', () => {
   });
 
   test('a failure outranks a warning', () => {
-    expect(assessmentOf(evaluateReading(reading({ temperature: 42.5, moisture: 30 })))).toBe(
+    expect(assessmentOf(evaluateReading(reading({ temperature: 42.5, ph: 3.2 })))).toBe(
       'outsideParameters',
     );
   });
@@ -103,7 +101,7 @@ describe('overall assessment', () => {
   });
 
   test('a failure still reports even while another sensor is silent', () => {
-    expect(assessmentOf(evaluateReading(reading({ ph: null, moisture: 30 })))).toBe('outsideParameters');
+    expect(assessmentOf(evaluateReading(reading({ ph: null, conductivity: 3.5 })))).toBe('outsideParameters');
   });
 
   test('missing weight does not block the verdict', () => {
@@ -124,11 +122,11 @@ describe('recommendation', () => {
   });
 
   test('a problem filtration cannot fix is held for review', () => {
-    expect(recommendationOf(evaluateReading(reading({ moisture: 30 })))).toBe('holdForReview');
+    expect(recommendationOf(evaluateReading(reading({ ph: 3.2 })))).toBe('holdForReview');
   });
 
   test('a mixed failure is held rather than re-filtered', () => {
-    expect(recommendationOf(evaluateReading(reading({ turbidity: 40, moisture: 30 })))).toBe('holdForReview');
+    expect(recommendationOf(evaluateReading(reading({ turbidity: 40, ph: 3.2 })))).toBe('holdForReview');
   });
 
   test('an incomplete batch gets no recommendation yet', () => {
@@ -188,7 +186,7 @@ describe('interpretation', () => {
 
 describe('summary', () => {
   test('names the failing parameters', () => {
-    expect(summaryOf(evaluateReading(reading({ moisture: 30 })))).toContain('Moisture');
+    expect(summaryOf(evaluateReading(reading({ conductivity: 3.5 })))).toContain('Conductivity');
   });
 
   test('names the sensors still to report', () => {

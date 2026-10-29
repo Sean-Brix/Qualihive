@@ -14,7 +14,6 @@ import { isReadingEmpty, makeReading, type SensorReading } from '../domain/senso
  *   "batch_id": "QH-2026-0084",
  *   "ph": 3.82,
  *   "temperature_c": 29.7,
- *   "moisture_percent": 23.4,
  *   "conductivity_ms_cm": 1.71,
  *   "turbidity_ntu": 11.2,
  *   "weight_kg": 1.83,
@@ -34,7 +33,6 @@ import { isReadingEmpty, makeReading, type SensorReading } from '../domain/senso
 /** Wire key, then the aliases accepted for it. First match wins. */
 const ALIASES: Record<string, readonly string[]> = {
   ph: ['ph'],
-  moisture: ['moisture_percent', 'moisture', 'moist', 'humidity', 'hum'],
   temperature: ['temperature_c', 'temperature', 'temp', 't'],
   conductivity: ['conductivity_ms_cm', 'conductivity', 'ec', 'cond'],
   turbidity: ['turbidity_ntu', 'turbidity', 'ntu', 'turb'],
@@ -155,7 +153,6 @@ export function parseReading(line: string, options: ParseOptions = {}): SensorRe
     recordedAt: options.recordedAt ?? new Date(),
     batchId: string(json, ['batch_id', 'batchid', 'batch']),
     ph: number(json, 'ph'),
-    moisture: number(json, 'moisture'),
     temperatureC: number(json, 'temperature'),
     electricalConductivity: number(json, 'conductivity'),
     turbidity: number(json, 'turbidity'),

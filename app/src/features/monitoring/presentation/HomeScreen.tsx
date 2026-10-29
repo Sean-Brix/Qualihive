@@ -264,7 +264,7 @@ function BatchCard({ batch, status }: { batch: Batch | null; status: TransportSt
           {batch == null
             ? manualStart
               ? 'A batch opens automatically when the machine starts a filtration cycle.'
-              : 'Starting the pump cycle opens a batch. One also opens when the machine reports a cycle of its own.'
+              : 'Starting the pump cycle opens a batch. Running a pump by hand does not.'
             : `Started ${formatHm(batch.startedAt)} · ${batch.readingCount} readings captured`}
         </Text>
         {batch != null && (

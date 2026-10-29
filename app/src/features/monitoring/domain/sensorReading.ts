@@ -20,7 +20,6 @@ export interface SensorReading {
   readonly batchId?: string | null;
   readonly recordedAt: Date;
   readonly ph?: number | null;
-  readonly moisture?: number | null;
   readonly temperatureC?: number | null;
   readonly electricalConductivity?: number | null;
   readonly turbidity?: number | null;
@@ -53,8 +52,6 @@ export function valueOf(reading: SensorReading, parameter: SensorParameter): num
   switch (parameter) {
     case 'ph':
       return reading.ph ?? null;
-    case 'moisture':
-      return reading.moisture ?? null;
     case 'temperature':
       return reading.temperatureC ?? null;
     case 'electricalConductivity':

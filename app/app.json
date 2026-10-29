@@ -2,7 +2,7 @@
   "expo": {
     "name": "Qualihive",
     "slug": "qualihive",
-    "version": "1.4.0",
+    "version": "1.5.0",
     "scheme": "qualihive",
     "orientation": "portrait",
     "icon": "./assets/branding/qualihive_app_icon.png",

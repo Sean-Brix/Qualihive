@@ -6,12 +6,14 @@ import type { MachineCommand } from '../domain/pumpCycle';
  *
  * ```json
  * {"type":"pump_on","pump":2,"duration_s":90}
+ * {"type":"pump_off","pump":2}
  * {"type":"pump_off"}
  * ```
  *
- * `pump_on` runs that pump and only that pump, and asks the firmware to
- * switch it off by itself after `duration_s` seconds. `pump_off` switches
- * every pump off. Keys are snake_case to match the reading packets.
+ * `pump_on` switches that pump on, leaving the others as they are, and asks
+ * the firmware to switch it off by itself after `duration_s` seconds.
+ * `pump_off` with a pump switches that one off; without one, every pump.
+ * Keys are snake_case to match the reading packets.
  */
 export function encodeCommand(command: MachineCommand): string {
   switch (command.type) {
@@ -22,7 +24,9 @@ export function encodeCommand(command: MachineCommand): string {
         duration_s: command.durationSeconds,
       })}\n`;
     case 'pumpOff':
-      return `${JSON.stringify({ type: 'pump_off' })}\n`;
+      return command.pump == null
+        ? `${JSON.stringify({ type: 'pump_off' })}\n`
+        : `${JSON.stringify({ type: 'pump_off', pump: command.pump })}\n`;
   }
 }
 

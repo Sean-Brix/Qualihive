@@ -1,23 +1,32 @@
 import { formatCountdown, formatSpan } from '@/core/utils/dates';
 import { chunkBytes, encodeCommand, encodeUtf8 } from '@/features/monitoring/data/machineCommand';
 import {
+  ALL_PUMPS_OFF,
   DEFAULT_PUMP_SECONDS,
   DEFAULT_PUMP_TIMERS,
   IDLE_CYCLE,
+  MANUAL_PUMP_SECONDS,
   MAX_PUMP_SECONDS,
   MIN_PUMP_SECONDS,
   advanceCycle,
-  commandFor,
+  applyCommand,
+  cycleCommands,
   cycleRemainingMs,
   cycleSeconds,
+  expireSwitches,
   nextPump,
+  nextSwitchOff,
   normaliseTimers,
-  readingDuringCycle,
+  pumpsLabel,
+  pumpsOn,
+  readingWhilePumping,
   remainingMs,
   stageForPump,
+  stageForPumps,
   startCycle,
   stepProgress,
   stopCycle,
+  switchCommand,
   withTimer,
 } from '@/features/monitoring/domain/pumpCycle';
 import { makeReading } from '@/features/monitoring/domain/sensorReading';
@@ -118,21 +127,60 @@ describe('cycle', () => {
   });
 });
 
-describe('commands', () => {
-  test('a running cycle asks for its pump, with that pump’s time', () => {
-    const cycle = advanceCycle(startCycle(TIMERS, T0), T0, 'skipped');
-    expect(commandFor(cycle)).toEqual({ type: 'pumpOn', pump: 2, durationSeconds: 20 });
+describe('cycle commands', () => {
+  test('starting switches pump 1 on, with pump 1’s time', () => {
+    expect(cycleCommands(IDLE_CYCLE, startCycle(TIMERS, T0))).toEqual([
+      { type: 'pumpOn', pump: 1, durationSeconds: 10 },
+    ]);
   });
 
-  test('anything else switches the pumps off', () => {
-    expect(commandFor(IDLE_CYCLE)).toEqual({ type: 'pumpOff' });
-    expect(commandFor(stopCycle(startCycle(TIMERS, T0), T0))).toEqual({ type: 'pumpOff' });
+  test('moving on switches the old pump off, then the next one on', () => {
+    const first = startCycle(TIMERS, T0);
+    expect(cycleCommands(first, advanceCycle(first, T0, 'skipped'))).toEqual([
+      { type: 'pumpOff', pump: 1 },
+      { type: 'pumpOn', pump: 2, durationSeconds: 20 },
+    ]);
   });
 
+  test('the end of the cycle switches pump 4 off and nothing else', () => {
+    let cycle = startCycle(TIMERS, T0);
+    for (let i = 0; i < 3; i++) cycle = advanceCycle(cycle, T0, 'done');
+    expect(cycleCommands(cycle, advanceCycle(cycle, T0, 'done'))).toEqual([{ type: 'pumpOff', pump: 4 }]);
+  });
+});
+
+describe('switch commands', () => {
+  test('off switches that one pump off', () => {
+    expect(switchCommand(IDLE_CYCLE, 3, false, T0)).toEqual({ type: 'pumpOff', pump: 3 });
+  });
+
+  test('on, outside the cycle’s step, runs for the safety limit', () => {
+    expect(switchCommand(IDLE_CYCLE, 4, true, T0)).toEqual({
+      type: 'pumpOn',
+      pump: 4,
+      durationSeconds: MANUAL_PUMP_SECONDS,
+    });
+    // Pump 4 is not the cycle's pump yet, so a running cycle changes nothing.
+    expect(switchCommand(startCycle(TIMERS, T0), 4, true, T0)).toEqual({
+      type: 'pumpOn',
+      pump: 4,
+      durationSeconds: MANUAL_PUMP_SECONDS,
+    });
+  });
+
+  test('the cycle’s own pump, switched back on, gets only what is left of its step', () => {
+    const cycle = startCycle(TIMERS, T0);
+    expect(switchCommand(cycle, 1, true, T0 + 3_500)).toEqual({ type: 'pumpOn', pump: 1, durationSeconds: 7 });
+    expect(switchCommand(cycle, 1, true, T0 + 10_000)).toEqual({ type: 'pumpOn', pump: 1, durationSeconds: 1 });
+  });
+});
+
+describe('commands on the wire', () => {
   test('go out as one JSON line each, in the firmware’s snake_case', () => {
     expect(encodeCommand({ type: 'pumpOn', pump: 3, durationSeconds: 90 })).toBe(
       '{"type":"pump_on","pump":3,"duration_s":90}\n',
     );
+    expect(encodeCommand({ type: 'pumpOff', pump: 2 })).toBe('{"type":"pump_off","pump":2}\n');
     expect(encodeCommand({ type: 'pumpOff' })).toBe('{"type":"pump_off"}\n');
   });
 
@@ -145,8 +193,46 @@ describe('commands', () => {
   });
 });
 
-describe('readings during a cycle', () => {
+describe('switches', () => {
+  const on = (pump: 1 | 2 | 3 | 4, seconds: number) => ({ type: 'pumpOn' as const, pump, durationSeconds: seconds });
+
+  test('switching one pump on leaves the others as they are', () => {
+    let switches = applyCommand(ALL_PUMPS_OFF, on(2, 30), T0);
+    switches = applyCommand(switches, on(4, 60), T0 + 1_000);
+    expect(pumpsOn(switches)).toEqual([2, 4]);
+    expect(switches[1]).toEqual({ since: T0, offAt: T0 + 30_000 });
+  });
+
+  test('switching one off leaves the others on, and all-off clears every one', () => {
+    let switches = applyCommand(ALL_PUMPS_OFF, on(1, 30), T0);
+    switches = applyCommand(switches, on(3, 30), T0);
+    expect(pumpsOn(applyCommand(switches, { type: 'pumpOff', pump: 1 }, T0))).toEqual([3]);
+    expect(applyCommand(switches, { type: 'pumpOff' }, T0)).toBe(ALL_PUMPS_OFF);
+  });
+
+  test('a pump told to run again keeps the time it came on, with a fresh timer', () => {
+    let switches = applyCommand(ALL_PUMPS_OFF, on(2, MANUAL_PUMP_SECONDS), T0);
+    switches = applyCommand(switches, on(2, 20), T0 + 5_000);
+    expect(switches[1]).toEqual({ since: T0, offAt: T0 + 25_000 });
+  });
+
+  test('a pump drops out when its time is up, as the machine switches it off', () => {
+    let switches = applyCommand(ALL_PUMPS_OFF, on(1, 10), T0);
+    switches = applyCommand(switches, on(2, 30), T0);
+    expect(nextSwitchOff(switches)).toBe(T0 + 10_000);
+    expect(expireSwitches(switches, T0 + 9_999)).toBe(switches);
+    expect(pumpsOn(expireSwitches(switches, T0 + 10_000))).toEqual([2]);
+    expect(nextSwitchOff(ALL_PUMPS_OFF)).toBeNull();
+  });
+});
+
+describe('readings while pumping', () => {
   const idle = makeReading({ recordedAt: new Date(T0), ph: 3.9, stage: 'idle' });
+  const running = (...pumps: (1 | 2 | 3 | 4)[]) =>
+    pumps.reduce(
+      (switches, pump) => applyCommand(switches, { type: 'pumpOn', pump, durationSeconds: 60 }, T0),
+      ALL_PUMPS_OFF,
+    );
 
   test('pump N stands for stage N', () => {
     expect(stageForPump(1)).toBe('extracting');
@@ -155,16 +241,26 @@ describe('readings during a cycle', () => {
     expect(stageForPump(4)).toBe('qualityAssessment');
   });
 
-  test('a packet with no stage takes the running pump’s', () => {
-    const cycle = advanceCycle(advanceCycle(startCycle(TIMERS, T0), T0, 'done'), T0, 'done');
-    expect(readingDuringCycle(idle, cycle).stage).toBe('secondaryFiltration');
+  test('several pumps at once stand for the furthest along', () => {
+    expect(stageForPumps([1, 3])).toBe('secondaryFiltration');
+    expect(stageForPumps([])).toBe('idle');
   });
 
-  test('a stage the firmware reports is kept, and nothing changes outside a cycle', () => {
-    const cycle = startCycle(TIMERS, T0);
+  test('a packet with no stage takes the running pumps’', () => {
+    expect(readingWhilePumping(idle, running(3)).stage).toBe('secondaryFiltration');
+    expect(readingWhilePumping(idle, running(1, 4)).stage).toBe('qualityAssessment');
+  });
+
+  test('a stage the firmware reports is kept, and nothing changes with every pump off', () => {
     const reported = { ...idle, stage: 'primaryFiltration' as const };
-    expect(readingDuringCycle(reported, cycle).stage).toBe('primaryFiltration');
-    expect(readingDuringCycle(idle, IDLE_CYCLE)).toBe(idle);
+    expect(readingWhilePumping(reported, running(4)).stage).toBe('primaryFiltration');
+    expect(readingWhilePumping(idle, ALL_PUMPS_OFF)).toBe(idle);
+  });
+
+  test('pumps are named together in plain words', () => {
+    expect(pumpsLabel([2])).toBe('Pump 2');
+    expect(pumpsLabel([2, 4])).toBe('Pumps 2 and 4');
+    expect(pumpsLabel([1, 2, 4])).toBe('Pumps 1, 2 and 4');
   });
 });
 

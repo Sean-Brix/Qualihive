@@ -263,7 +263,6 @@ export function aggregateReadings(readings: readonly SensorReading[]): SensorRea
     recordedAt: last.recordedAt,
     batchId: last.batchId,
     ph: mean(sample, 'ph'),
-    moisture: mean(sample, 'moisture'),
     temperatureC: mean(sample, 'temperature'),
     electricalConductivity: mean(sample, 'electricalConductivity'),
     turbidity: mean(sample, 'turbidity'),

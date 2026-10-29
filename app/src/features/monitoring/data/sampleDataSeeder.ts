@@ -186,13 +186,13 @@ function startFor(input: {
 }
 
 /**
- * Most lots are sound. The rest fail the way honey actually fails: too much
- * water, not enough clarity, or a jacket that ran hot.
+ * Most lots are sound. The rest fail the way honey actually fails: starting
+ * to ferment, not enough clarity, or a jacket that ran hot.
  */
 function troubleFor(random: RandomSource): HoneyTrouble {
   const roll = random.nextDouble();
   if (roll < 0.7) return 'none';
-  if (roll < 0.82) return 'wetLot';
+  if (roll < 0.82) return 'fermenting';
   if (roll < 0.92) return 'cloudy';
   return 'overheated';
 }

@@ -39,14 +39,19 @@ test('accepts commands, and sits idle until told to run a pump', async () => {
   expect(readings.every((r) => r.stage === 'idle' && r.machineStatus === 'ready')).toBe(true);
 });
 
-test('runs the pump it is told to, and only that one', async () => {
+test('switches each pump on and off on its own', async () => {
   await send({ type: 'pumpOn', pump: 1, durationSeconds: 30 });
   expect(last().stage).toBe('extracting');
   expect(last().machineStatus).toBe('running');
 
+  // Pump 1 keeps running; the stage follows the pump furthest along.
   await send({ type: 'pumpOn', pump: 3, durationSeconds: 30 });
   expect(last().stage).toBe('secondaryFiltration');
 
+  await send({ type: 'pumpOff', pump: 3 });
+  expect(last().stage).toBe('extracting');
+
+  await send({ type: 'pumpOn', pump: 2, durationSeconds: 30 });
   await send({ type: 'pumpOff' });
   expect(last().stage).toBe('idle');
   expect(last().machineStatus).toBe('ready');
@@ -61,6 +66,7 @@ test('switches a pump off by itself when its time is up, as the firmware must', 
 
 test('pump 4 fills the jar over its run, and pump 1 starts a fresh lot', async () => {
   await send({ type: 'pumpOn', pump: 1, durationSeconds: 5 });
+  await send({ type: 'pumpOff', pump: 1 });
   await send({ type: 'pumpOn', pump: 4, durationSeconds: 10 });
   expect(last().weightKg).toBe(0);
 
@@ -79,6 +85,23 @@ test('pump 4 fills the jar over its run, and pump 1 starts a fresh lot', async (
 
   await send({ type: 'pumpOn', pump: 1, durationSeconds: 5 });
   expect(last().weightKg).toBe(0);
+});
+
+test('pump 1 restarted before the lot reached the jar carries on with the same lot', async () => {
+  await send({ type: 'pumpOn', pump: 1, durationSeconds: 5 });
+  const lot = last().ph;
+  await send({ type: 'pumpOff', pump: 1 });
+  await send({ type: 'pumpOn', pump: 1, durationSeconds: 5 });
+  expect(last().ph).toBeCloseTo(lot!, 1);
+});
+
+test('a pump on for the two-hour safety limit still fills the jar in minutes', async () => {
+  await send({ type: 'pumpOn', pump: 4, durationSeconds: 7200 });
+  await jest.advanceTimersByTimeAsync(3 * 60_000);
+  const full = last().weightKg!;
+  await jest.advanceTimersByTimeAsync(60_000);
+  expect(full).toBeGreaterThan(0);
+  expect(last().weightKg).toBe(full);
 });
 
 test('refuses commands once the link is gone', async () => {

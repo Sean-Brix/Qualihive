@@ -17,6 +17,7 @@ import { formatSpan } from '@/core/utils/dates';
 import { useMonitoringStore } from '@/features/monitoring/application/monitoringStore';
 import {
   DEFAULT_PUMP_SECONDS,
+  MANUAL_PUMP_SECONDS,
   MAX_PUMP_SECONDS,
   MIN_PUMP_SECONDS,
   PUMPS,
@@ -76,8 +77,10 @@ export function PumpTimersScreen() {
       />
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: bottom }]}>
         <InfoPanel icon="timer">
-          When a cycle starts, pump 1 runs for its time, then pump 2, 3 and 4 in turn — one pump at a
-          time. Skip on Home ends the running pump early and moves straight on to the next.
+          When a cycle starts, pump 1 runs for its time, then pump 2, 3 and 4 in turn. Skip on Home
+          ends the cycle&apos;s pump early and moves straight on to the next. These times are for the
+          cycle: a pump switched on by hand on Home runs until you switch it off, for up to{' '}
+          {formatSpan(MANUAL_PUMP_SECONDS)}.
         </InfoPanel>
         {cycleRunning && (
           <InfoPanel icon="info-outline" style={{ marginTop: 10 }}>

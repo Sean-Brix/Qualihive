@@ -2,13 +2,19 @@ import { STAGE_SEQUENCE, type FiltrationStage } from './machineState';
 import type { SensorReading } from './sensorReading';
 
 /**
- * The four pumps, and the cycle that runs them one after another.
+ * The four pumps, the cycle that runs them one after another, and the
+ * switches that run any of them by hand.
  *
  * The machine moves honey in four hops — hopper to filter 1, filter 1 to
  * filter 2, filter 2 to filter 3, filter 3 to the jar — each driven by its
- * own pump. The app runs them in turn: pump 1 for its set time, then pump 2,
- * and so on, with only one pump running at a time. Skip cuts the running
- * pump short and moves straight on to the next.
+ * own pump. The cycle runs them in turn: pump 1 for its set time, then pump
+ * 2, and so on. Skip cuts the cycle's pump short and moves straight on to the
+ * next.
+ *
+ * Every pump is also switched on and off on its own, at any time, cycle or
+ * no cycle. The cycle only ever touches the pump it is on: it switches that
+ * one off when its time is up and the next one on, and leaves the rest as
+ * they are.
  *
  * Everything here is pure: the clock is passed in, so the timing rules are
  * testable without timers. [PumpSequencer] owns the real clock and the radio.
@@ -29,6 +35,14 @@ const PUMP_INFO: Record<PumpNumber, { from: string; to: string; description: str
 };
 
 export const pumpLabel = (pump: PumpNumber) => `Pump ${pump}`;
+
+/** `Pump 2`, `Pumps 2 and 4`, `Pumps 1, 2 and 4`. */
+export function pumpsLabel(pumps: readonly PumpNumber[]): string {
+  if (pumps.length === 0) return 'No pump';
+  if (pumps.length === 1) return pumpLabel(pumps[0]);
+  return `Pumps ${pumps.slice(0, -1).join(', ')} and ${pumps[pumps.length - 1]}`;
+}
+
 export const pumpRoute = (pump: PumpNumber) => `${PUMP_INFO[pump].from} → ${PUMP_INFO[pump].to}`;
 export const pumpDescription = (pump: PumpNumber) => PUMP_INFO[pump].description;
 
@@ -39,6 +53,15 @@ export const pumpDescription = (pump: PumpNumber) => PUMP_INFO[pump].description
  * is computed from.
  */
 export const stageForPump = (pump: PumpNumber): FiltrationStage => STAGE_SEQUENCE[pump];
+
+/**
+ * The stage for a set of running pumps: that of the furthest-along one, the
+ * honey nearest the jar. Idle when none runs.
+ */
+export function stageForPumps(pumps: readonly PumpNumber[]): FiltrationStage {
+  const last = Math.max(0, ...pumps);
+  return isPumpNumber(last) ? stageForPump(last) : 'idle';
+}
 
 // -------------------------------------------------------------- timers ---
 
@@ -228,42 +251,134 @@ export function cycleRemainingMs(cycle: PumpCycle, now: number): number {
 // ------------------------------------------------------------ commands ---
 
 /**
- * What the app tells the machine. Only one pump runs at a time, so "run this
- * pump" also stops whichever pump was running before it.
+ * What the app tells the machine. Each pump is its own: switching one on or
+ * off leaves the others as they are.
  *
  * `durationSeconds` lets the firmware switch the pump off on its own when the
  * time is up. The app sends the next command when that happens anyway, but a
- * dropped link or a sleeping phone must not leave a pump running.
+ * dropped link or a sleeping phone must not leave a pump running. A
+ * `pumpOff` without a pump switches every pump off.
  */
 export type MachineCommand =
   | { readonly type: 'pumpOn'; readonly pump: PumpNumber; readonly durationSeconds: number }
-  | { readonly type: 'pumpOff' };
+  | { readonly type: 'pumpOff'; readonly pump?: PumpNumber | null };
 
-/** The command that puts the machine into the state [cycle] describes. */
-export function commandFor(cycle: PumpCycle): MachineCommand {
-  if (cycle.phase === 'running' && cycle.activePump != null) {
-    return {
-      type: 'pumpOn',
-      pump: cycle.activePump,
-      durationSeconds: timerFor(cycle.timers, cycle.activePump),
-    };
+/**
+ * What the machine has to be told to move the cycle from [prev] to [next]:
+ * the pump the cycle is leaving goes off, then the one it is starting goes on
+ * with its own time. Pumps the cycle is not on are not mentioned, so a pump
+ * running by hand keeps running.
+ */
+export function cycleCommands(prev: PumpCycle, next: PumpCycle): MachineCommand[] {
+  const leaving = prev.phase === 'running' ? prev.activePump : null;
+  const entering = next.phase === 'running' ? next.activePump : null;
+
+  const commands: MachineCommand[] = [];
+  if (leaving != null && leaving !== entering) commands.push({ type: 'pumpOff', pump: leaving });
+  if (entering != null) {
+    commands.push({ type: 'pumpOn', pump: entering, durationSeconds: timerFor(next.timers, entering) });
   }
-  return { type: 'pumpOff' };
+  return commands;
+}
+
+/**
+ * The longest a pump switched on by hand runs before the machine switches it
+ * off by itself — the longest a timer can be set to. Long enough that it
+ * reads as "on until I switch it off", short enough that a pump forgotten
+ * with the phone in a pocket still stops.
+ */
+export const MANUAL_PUMP_SECONDS = MAX_PUMP_SECONDS;
+
+/**
+ * The command behind one of the switches.
+ *
+ * The cycle's own pump, switched back on while its step is still going, gets
+ * only the time left on the step: the cycle switches it off when that runs
+ * out, and the machine has to do the same if the phone has gone quiet. Any
+ * other pump gets [MANUAL_PUMP_SECONDS].
+ */
+export function switchCommand(
+  cycle: PumpCycle,
+  pump: PumpNumber,
+  on: boolean,
+  now: number,
+): MachineCommand {
+  if (!on) return { type: 'pumpOff', pump };
+  const inStep = cycle.phase === 'running' && cycle.activePump === pump;
+  const seconds = inStep ? Math.max(1, Math.ceil(remainingMs(cycle, now) / 1000)) : MANUAL_PUMP_SECONDS;
+  return { type: 'pumpOn', pump, durationSeconds: seconds };
+}
+
+// ------------------------------------------------------------ switches ---
+
+/** A pump that is on: since when, and when the machine switches it off by itself. */
+export interface PumpOn {
+  readonly since: number;
+  /** The end of the last `durationSeconds` it was sent, in ms since the epoch. */
+  readonly offAt: number;
+}
+
+/**
+ * Which pumps are on, as far as the app has told the machine — pump 1
+ * first, null for off. The firmware sends no pump states back, so this is
+ * the app's own record: every command that gets through updates it, and a
+ * pump drops out when its time runs out, just as the firmware switches it off.
+ */
+export type PumpSwitches = readonly (PumpOn | null)[];
+
+export const ALL_PUMPS_OFF: PumpSwitches = PUMPS.map(() => null);
+
+export const switchOf = (switches: PumpSwitches, pump: PumpNumber): PumpOn | null =>
+  switches[pump - 1] ?? null;
+
+export const isPumpOn = (switches: PumpSwitches, pump: PumpNumber) => switchOf(switches, pump) != null;
+
+/** The pumps that are on, lowest first. */
+export const pumpsOn = (switches: PumpSwitches): PumpNumber[] =>
+  PUMPS.filter((pump) => isPumpOn(switches, pump));
+
+/**
+ * The switches once the machine has carried out [command] at [now]. A pump
+ * that was already on keeps the time it came on; its timer starts over.
+ */
+export function applyCommand(switches: PumpSwitches, command: MachineCommand, now: number): PumpSwitches {
+  if (command.type === 'pumpOff' && command.pump == null) return ALL_PUMPS_OFF;
+  return PUMPS.map((pump) => {
+    const current = switchOf(switches, pump);
+    if (command.pump !== pump) return current;
+    if (command.type === 'pumpOff') return null;
+    return { since: current?.since ?? now, offAt: now + command.durationSeconds * 1000 };
+  });
+}
+
+/**
+ * Drops the pumps whose time has run out by [now] — the machine has switched
+ * them off itself. The same array when nothing changed.
+ */
+export function expireSwitches(switches: PumpSwitches, now: number): PumpSwitches {
+  if (!switches.some((on) => on != null && on.offAt <= now)) return switches;
+  return switches.map((on) => (on != null && on.offAt <= now ? null : on));
+}
+
+/** When the next pump switches itself off, or null when none is on. */
+export function nextSwitchOff(switches: PumpSwitches): number | null {
+  const times = switches.flatMap((on) => (on == null ? [] : [on.offAt]));
+  return times.length === 0 ? null : Math.min(...times);
 }
 
 // ------------------------------------------------------------ readings ---
 
 /**
- * Fills in the stage of a reading taken while the app is driving the pumps.
+ * Fills in the stage of a reading taken while the app has pumps on.
  *
  * Firmware that does not report a stage parses as idle. While a pump the app
- * started is running the app knows better, and the batch record should say
- * which part of the cycle each sample came from. A stage the firmware does
+ * switched on is running the app knows better, and the batch record should
+ * say which part of the process each sample came from. With several pumps on
+ * the furthest along wins, as in [stageForPumps]. A stage the firmware does
  * report is left alone.
  */
-export function readingDuringCycle(reading: SensorReading, cycle: PumpCycle): SensorReading {
-  if (cycle.phase !== 'running' || cycle.activePump == null || reading.stage !== 'idle') {
-    return reading;
-  }
-  return { ...reading, stage: stageForPump(cycle.activePump) };
+export function readingWhilePumping(reading: SensorReading, switches: PumpSwitches): SensorReading {
+  const on = pumpsOn(switches);
+  if (on.length === 0 || reading.stage !== 'idle') return reading;
+  return { ...reading, stage: stageForPumps(on) };
 }

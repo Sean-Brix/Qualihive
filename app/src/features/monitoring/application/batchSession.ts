@@ -91,9 +91,20 @@ export class BatchSession {
     this.open = await this.batches.getOpen();
   }
 
-  /** Files one reading: stores it, updates the batch, and raises any alerts. */
-  async handle(reading: SensorReading): Promise<QualityEvaluation> {
-    const batch = await this.batchFor(reading);
+  /**
+   * Files one reading: stores it, updates the batch, and raises any alerts.
+   *
+   * With [openOnActivity] off, a reading that says the machine is working
+   * joins the open batch but does not open one. That is for a machine the app
+   * drives itself: its pumps run because the app switched them on, which is
+   * not a filtration cycle of the machine's own, and a pump run by hand
+   * should not leave a batch behind that nothing will ever close.
+   */
+  async handle(
+    reading: SensorReading,
+    { openOnActivity = true }: { openOnActivity?: boolean } = {},
+  ): Promise<QualityEvaluation> {
+    const batch = await this.batchFor(reading, openOnActivity);
     const filed: SensorReading = { ...reading, batchId: batch?.code ?? reading.batchId ?? null };
 
     await this.readings.save(filed);
@@ -243,7 +254,7 @@ export class BatchSession {
    * app opens a batch as soon as the machine starts doing something, and
    * files readings taken while it is idle against no batch at all.
    */
-  private async batchFor(reading: SensorReading): Promise<Batch | null> {
+  private async batchFor(reading: SensorReading, openOnActivity: boolean): Promise<Batch | null> {
     const declared = reading.batchId;
 
     if (declared != null && declared.length > 0) {
@@ -274,7 +285,7 @@ export class BatchSession {
     const machineIsWorking =
       reading.machineStatus === 'running' ||
       (reading.stage !== 'idle' && !isStageTerminal(reading.stage));
-    if (!machineIsWorking) return null;
+    if (!machineIsWorking || !openOnActivity) return null;
 
     return this.start({
       deviceId: reading.deviceId,

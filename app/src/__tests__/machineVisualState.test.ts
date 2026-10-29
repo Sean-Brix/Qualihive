@@ -173,13 +173,13 @@ describe('scene geometry', () => {
   });
 });
 
-describe('the app’s pump cycle', () => {
-  const driving = (pump: PumpNumber) =>
+describe('pumps the app switched on', () => {
+  const driving = (...pumps: PumpNumber[]) =>
     deriveVisualState({
       connected: true,
       status: 'running',
-      stage: stageForPump(pump),
-      activePump: pump,
+      stage: stageForPump(pumps[pumps.length - 1]),
+      activePumps: pumps,
       lastReadingAt: new Date(),
     });
 
@@ -207,12 +207,20 @@ describe('the app’s pump cycle', () => {
     expect([1, 2, 3].some((filter) => filterActive(driving(4), filter))).toBe(false);
   });
 
+  test('two pumps on at once both run, with the pipes either side of each', () => {
+    const state = driving(1, 4);
+    expect(PUMPS.filter((pump) => pumpActive(state, pump))).toEqual([1, 4]);
+    expect(FLOW_ROUTES.filter((route) => routeActive(state, route)).map((r) => r.pump)).toEqual([1, 1, 4, 4]);
+    expect(filterActive(state, 1)).toBe(true);
+    expect(filterActive(state, 2)).toBe(false);
+  });
+
   test('a fault holds every pump, whichever one was started', () => {
     const faulted = deriveVisualState({
       connected: true,
       status: 'error',
       stage: stageForPump(2),
-      activePump: 2,
+      activePumps: [2],
     });
     expect(PUMPS.some((pump) => pumpActive(faulted, pump))).toBe(false);
   });

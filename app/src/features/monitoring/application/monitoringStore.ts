@@ -6,6 +6,7 @@ import { readActiveStandard } from '@/features/settings/application/standardStor
 import { BleSensorTransport } from '../data/transport/bleSensorTransport';
 import {
   DISCONNECTED,
+  isControllable,
   type DiscoveredDevice,
   type SensorTransport,
   type TransportState,
@@ -15,11 +16,14 @@ import {
 import { SimulatedSensorTransport } from '../data/transport/simulatedSensorTransport';
 import type { Batch } from '../domain/batch';
 import {
+  ALL_PUMPS_OFF,
   IDLE_CYCLE,
   isCycleRunning,
   pumpLabel,
-  readingDuringCycle,
+  readingWhilePumping,
   type PumpCycle,
+  type PumpNumber,
+  type PumpSwitches,
 } from '../domain/pumpCycle';
 import type { SensorReading } from '../domain/sensorReading';
 import { PumpSequencer } from './pumpSequencer';
@@ -48,6 +52,8 @@ interface MonitoringState {
   liveReading: SensorReading | null;
   /** The pump cycle the app is running on the machine. */
   cycle: PumpCycle;
+  /** Which pumps are on, cycle or by hand. */
+  switches: PumpSwitches;
   /** Status of the last action the UI triggered. */
   busy: boolean;
   error: string | null;
@@ -66,10 +72,18 @@ interface MonitoringState {
   startBatch(): Promise<void>;
   /** Runs the four pumps in turn, each for its set time, and opens a batch for the run. */
   startCycle(): Promise<void>;
-  /** Cuts the running pump short and starts the next one at once. */
+  /** Cuts the cycle's pump short and starts the next one at once. */
   skipPump(): Promise<void>;
-  /** Switches every pump off and ends the cycle where it is. */
-  stopCycle(): Promise<void>;
+  /**
+   * Switches one pump on or off by hand, cycle or no cycle. Rejects when the
+   * machine could not be told.
+   */
+  setPump(pump: PumpNumber, on: boolean): Promise<void>;
+  /**
+   * Switches every pump off, including any running by hand, and ends the
+   * cycle where it is. Resolves with whether the machine heard it.
+   */
+  stopPumps(): Promise<boolean>;
   /** Closes the open batch and freezes its verdict. */
   finishBatch(notes?: string): Promise<void>;
   saveNotes(batch: Batch, notes: string): Promise<void>;
@@ -144,7 +158,7 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => {
 
   const sequencer = new PumpSequencer({
     send: (command) => get().ensureTransport().send(command),
-    onChange: (cycle) => set({ cycle }),
+    onChange: ({ cycle, switches }) => set({ cycle, switches }),
     // The cycle is the process: once pump 4 has run, the batch it opened is done.
     onComplete: () => inSession(() => batchSession.finish()),
   });
@@ -167,7 +181,10 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => {
       transport.onReading((packet) => {
         // While the app drives the pumps it knows the stage, even when the
         // firmware does not say.
-        const reading = readingDuringCycle(packet, sequencer.cycle);
+        const reading = readingWhilePumping(packet, sequencer.switches);
+        // A machine the app commands only runs when the app says so. Its
+        // batches open with the cycle; a pump run by hand opens none.
+        const openOnActivity = !isControllable(get().status) || sequencer.isRunning;
         void (async () => {
           await restored;
           if (get().recording) {
@@ -176,7 +193,7 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => {
             // dashboard is better served by a screen that still updates than
             // by one that froze because a single insert failed.
             try {
-              await inSession(() => batchSession.handle(reading));
+              await inSession(() => batchSession.handle(reading, { openOnActivity }));
             } catch (error) {
               console.warn('Failed to file reading', error);
             }
@@ -192,7 +209,8 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => {
    * when the transport reports one. Runs regardless of which screen is up.
    *
    * A cycle running when the link drops ends there: no further command can
-   * reach the machine, and its own timer switches the running pump off.
+   * reach the machine, and the firmware switches every pump off when the
+   * phone goes. Pumps running by hand are marked off for the same reason.
    */
   const watchdog = async (status: TransportStatus) => {
     const dropped =
@@ -201,7 +219,7 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => {
       status.state !== 'connecting';
 
     const pump = sequencer.cycle.activePump;
-    if (dropped && sequencer.isRunning) {
+    if (dropped && sequencer.isActive) {
       sequencer.abandon(
         `The link dropped during ${pump == null ? 'the cycle' : pumpLabel(pump).toLowerCase()}. Reconnect and start again.`,
       );
@@ -223,6 +241,7 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => {
     recording: true,
     liveReading: null,
     cycle: IDLE_CYCLE,
+    switches: ALL_PUMPS_OFF,
     busy: false,
     error: null,
 
@@ -249,7 +268,7 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => {
       // sequencer cannot do it: by the time it sent, the store would hold the
       // new transport.
       let stopping: Promise<unknown> = Promise.resolve();
-      if (sequencer.isRunning) {
+      if (sequencer.isActive) {
         sequencer.abandon('Stopped because the data source was switched.');
         if (old) stopping = old.send({ type: 'pumpOff' }).catch(() => undefined);
       }
@@ -275,7 +294,7 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => {
     disconnect: () =>
       guarded(async () => {
         // Pumps off first, while there is still a link to say it over.
-        if (sequencer.isRunning) await sequencer.stop('Stopped when the machine was disconnected.');
+        if (sequencer.isActive) await sequencer.stop('Stopped when the machine was disconnected.');
         await get().ensureTransport().disconnect();
       }),
 
@@ -291,7 +310,8 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => {
       }),
 
     skipPump: () => sequencer.skip(),
-    stopCycle: () => sequencer.stop(),
+    setPump: (pump, on) => sequencer.setPump(pump, on),
+    stopPumps: () => sequencer.stop(),
 
     finishBatch: (notes) =>
       guarded(async () => {
@@ -334,3 +354,4 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => {
 export const useTransportStatus = () => useMonitoringStore((s) => s.status);
 export const useLiveReading = () => useMonitoringStore((s) => s.liveReading);
 export const usePumpCycle = () => useMonitoringStore((s) => s.cycle);
+export const usePumpSwitches = () => useMonitoringStore((s) => s.switches);

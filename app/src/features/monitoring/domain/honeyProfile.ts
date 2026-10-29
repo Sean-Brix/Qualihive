@@ -11,11 +11,11 @@ export type HoneyTrouble =
   /** A sound lot: every parameter sits inside its reference range. */
   | 'none'
   /**
-   * Harvested before the bees capped the pots, or stored in humid air.
-   * Moisture runs above the accepted band — the fermentation risk §12 warns
-   * about, and something filtration cannot fix.
+   * Harvested too wet or stored too warm, and yeast has started on the
+   * sugars. The acids it makes pull pH below the accepted band — the
+   * fermentation risk §12 warns about, and something filtration cannot fix.
    */
-  | 'wetLot'
+  | 'fermenting'
   /**
    * The heating jacket overshot. Temperature crosses the process limit while
    * the honey itself is fine.
@@ -27,14 +27,14 @@ export type HoneyTrouble =
    */
   | 'cloudy';
 
-export const HONEY_TROUBLES: readonly HoneyTrouble[] = ['none', 'wetLot', 'overheated', 'cloudy'];
+export const HONEY_TROUBLES: readonly HoneyTrouble[] = ['none', 'fermenting', 'overheated', 'cloudy'];
 
 /**
  * The properties one lot of honey has before the machine touches it.
  *
- * pH, moisture, conductivity and colour are characteristics of the honey
- * itself, not of the filtration run: across a single batch they move only as
- * far as sensor noise takes them. Turbidity is the exception, and the reason
+ * pH, conductivity and colour are characteristics of the honey itself, not
+ * of the filtration run: across a single batch they move only as far as
+ * sensor noise takes them. Turbidity is the exception, and the reason
  * the machine exists: it is the one parameter filtration changes. A profile
  * therefore carries both the clarity the lot arrives with and the clarity it
  * can be filtered down to, and the run interpolates between them.
@@ -46,8 +46,6 @@ export const HONEY_TROUBLES: readonly HoneyTrouble[] = ['none', 'wetLot', 'overh
 export interface HoneyProfile {
   /** Acidity of the lot. */
   readonly ph: number;
-  /** Water content, in per cent. */
-  readonly moisture: number;
   /** Conductivity in mS/cm. */
   readonly electricalConductivity: number;
   /** Colour on the Pfund scale, in mm. */
@@ -89,15 +87,12 @@ function bell(random: RandomSource, centre: number, spread: number): number {
 /** Draws a plausible lot, optionally with a defect. */
 export function randomProfile(random: RandomSource, trouble: HoneyTrouble = 'none'): HoneyProfile {
   return {
-    ph: bell(random, 3.85, 0.13),
-    moisture:
-      trouble === 'wetLot'
-        ? // Straddles the 25.8 % accepted bound and the 27.0 % tolerance bound,
-          // so a wet lot sometimes warns and sometimes fails outright.
-          bell(random, 26.9, 0.75)
-        : // Wide enough that a sound lot occasionally grazes the edge of the
-          // band. A distribution that never strays reads as manufactured.
-          bell(random, 23.9, 1.95),
+    ph:
+      trouble === 'fermenting'
+        ? // Straddles the 3.7 accepted bound and the 3.5 tolerance bound, so a
+          // fermenting lot sometimes warns and sometimes fails outright.
+          bell(random, 3.55, 0.14)
+        : bell(random, 3.85, 0.13),
     electricalConductivity: bell(random, 1.9, 0.45),
     colorPfund: bell(random, 78, 32),
     rawTurbidity: bell(random, 26, 9),

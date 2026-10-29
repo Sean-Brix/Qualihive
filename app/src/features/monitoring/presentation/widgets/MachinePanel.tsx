@@ -11,7 +11,7 @@ import { formatHms } from '@/core/utils/dates';
 import { useLiveEvaluation, useMachineVisual } from '../../application/queries';
 import { machineStatusDescription, machineStatusLabel, stageDescription, stageLabel } from '../../domain/machineState';
 import { flowFront, type MachineFault } from '../../domain/machineVisualState';
-import { pumpDescription, pumpLabel } from '../../domain/pumpCycle';
+import { pumpDescription, pumpLabel, pumpsLabel } from '../../domain/pumpCycle';
 import {
   displayValue,
   parameterOf,
@@ -29,7 +29,7 @@ import { machineStatusColor, machineStatusIcon, statusChipLabel, statusColor, st
  */
 export const MACHINE_READOUTS: readonly SensorParameter[] = [
   'ph',
-  'moisture',
+  'electricalConductivity',
   'turbidity',
   'temperature',
 ];
@@ -49,8 +49,8 @@ export function MachinePanel() {
   const evaluation = useLiveEvaluation();
   const accent = machineStatusColor(visual.status, scheme);
   const front = flowFront(visual);
-  // Under the app's own cycle, "which pump" says more than the stage name.
-  const pump = front > 0 ? visual.activePump : null;
+  // With the app driving the pumps, "which pumps" says more than the stage name.
+  const pumps = front > 0 ? visual.activePumps : [];
 
   return (
     <Card>
@@ -61,7 +61,13 @@ export function MachinePanel() {
         </Text>
         {front > 0 && (
           <Pill
-            label={pump != null ? `${pumpLabel(pump)} of 4` : stageLabel(visual.stage)}
+            label={
+              pumps.length === 1
+                ? `${pumpLabel(pumps[0])} of 4`
+                : pumps.length > 1
+                  ? pumpsLabel(pumps)
+                  : stageLabel(visual.stage)
+            }
             color={scheme.secondary}
             background={scheme.secondaryContainer}
           />
@@ -74,11 +80,13 @@ export function MachinePanel() {
 
       <View style={styles.caption}>
         <Text variant="bodySmall" color={scheme.onSurfaceVariant} style={{ flex: 1 }}>
-          {pump != null
-            ? pumpDescription(pump)
-            : front > 0
-              ? stageDescription(visual.stage)
-              : machineStatusDescription(visual.status)}
+          {pumps.length === 1
+            ? pumpDescription(pumps[0])
+            : pumps.length > 1
+              ? `${pumpsLabel(pumps)} running at the same time`
+              : front > 0
+                ? stageDescription(visual.stage)
+                : machineStatusDescription(visual.status)}
         </Text>
         {visual.jarLevel > 0 && (
           <View style={styles.jar}>

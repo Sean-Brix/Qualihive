@@ -241,8 +241,9 @@ export function assessmentOf(e: QualityEvaluation): QualityAssessment {
 }
 
 /**
- * Parameters another filtration pass could plausibly improve. Moisture and
- * pH are deliberately absent: filtering again does not fix them.
+ * Parameters another filtration pass could plausibly improve. pH,
+ * conductivity and temperature are deliberately absent: filtering again
+ * does not fix them.
  */
 const FILTRATION_ADDRESSABLE: ReadonlySet<SensorParameter> = new Set(['turbidity', 'color']);
 

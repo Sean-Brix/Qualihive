@@ -1,5 +1,6 @@
 import { PacketBuffer, parseReading } from '@/features/monitoring/data/readingParser';
 import { colorHex, effectivePfund, hasRgb } from '@/features/monitoring/domain/honeyColor';
+import { reportedParameters } from '@/features/monitoring/domain/sensorReading';
 
 const utf8 = (text: string) => new TextEncoder().encode(text);
 
@@ -11,7 +12,6 @@ describe('the §11 packet', () => {
   "batch_id": "QH-2026-0084",
   "ph": 3.82,
   "temperature_c": 29.7,
-  "moisture_percent": 23.4,
   "conductivity_ms_cm": 1.71,
   "turbidity_ntu": 11.2,
   "weight_kg": 1.83,
@@ -25,7 +25,6 @@ describe('the §11 packet', () => {
     expect(reading.batchId).toBe('QH-2026-0084');
     expect(reading.ph).toBe(3.82);
     expect(reading.temperatureC).toBe(29.7);
-    expect(reading.moisture).toBe(23.4);
     expect(reading.electricalConductivity).toBe(1.71);
     expect(reading.turbidity).toBe(11.2);
     expect(reading.weightKg).toBe(1.83);
@@ -51,12 +50,16 @@ describe('the §11 packet', () => {
 
 describe('tolerance', () => {
   test('accepts the older short field names', () => {
-    const reading = parseReading('{"ph":3.9,"temp":31.2,"moisture":23.4,"ec":1.85,"weight":1.4}')!;
+    const reading = parseReading('{"ph":3.9,"temp":31.2,"ec":1.85,"weight":1.4}')!;
     expect(reading.ph).toBe(3.9);
     expect(reading.temperatureC).toBe(31.2);
-    expect(reading.moisture).toBe(23.4);
     expect(reading.electricalConductivity).toBe(1.85);
     expect(reading.weightKg).toBe(1.4);
+  });
+
+  test('ignores moisture from firmware that still sends it', () => {
+    const reading = parseReading('{"ph":3.9,"moisture_percent":23.4,"moisture":23.4}')!;
+    expect(reportedParameters(reading)).toEqual(['ph']);
   });
 
   test('is case-insensitive about keys', () => {

@@ -4,6 +4,7 @@ import type { AppDatabase } from '@/core/database/client';
 import { thresholds, type ThresholdRow } from '@/core/database/schema';
 import {
   DEFAULT_STANDARD,
+  SENSOR_PARAMETERS,
   defaultSpecOf,
   withSpec,
   type ParameterSpec,
@@ -25,6 +26,8 @@ export function applyOverrides(rows: readonly ThresholdRow[]): QualityStandard {
   let standard = DEFAULT_STANDARD;
 
   for (const row of rows) {
+    // An override left behind by a parameter the app no longer measures.
+    if (!SENSOR_PARAMETERS.includes(row.parameter)) continue;
     const base = defaultSpecOf(row.parameter);
 
     // Written field by field rather than through copySpec because an override

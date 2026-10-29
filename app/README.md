@@ -57,7 +57,8 @@ Every assessment produces all three levels, live and on the archived record:
 A failure outranks a warning, which outranks incompleteness. A batch is never
 reported as acceptable while a graded sensor is silent. The recommendation is
 *Additional filtration* only when every problem is one filtering could fix
-(turbidity, colour) — moisture and pH send the batch to review instead.
+(turbidity, colour) — pH, conductivity and temperature send the batch to
+review instead.
 
 Logic lives in
 [qualityEvaluation.ts](src/features/monitoring/domain/qualityEvaluation.ts).
@@ -67,7 +68,6 @@ Logic lives in
 | Parameter | Accepted | Tolerance | Source |
 | --- | --- | --- | --- |
 | pH | 3.7–4.0 | 3.5–4.2 | Physico-chemical survey |
-| Moisture | 22.0–25.8 % | 20.0–27.0 % | Physico-chemical survey |
 | Conductivity | 1.28–2.52 mS/cm | 1.10–2.80 mS/cm | Physico-chemical survey |
 | Colour | 34–150 mm Pfund | from 25 mm | Physico-chemical survey |
 | Temperature | ≤ 40 °C | ≤ 45 °C | Filtration process limit |
@@ -93,26 +93,41 @@ The machine moves honey in four hops, each driven by its own pump:
 | 3 | Filter 2 → Filter 3 | Secondary filtration |
 | 4 | Filter 3 → Jar | Quality assessment |
 
-**Start cycle** on Home runs them **one at a time, in order**: pump 1 for its
-set time, then pump 2, 3 and 4. **Skip** ends the running pump at once and
-starts the next (on pump 4 it finishes the cycle); **Stop** switches every pump
-off. Each pump's time is set in **More → Pump timers** (default 1 min, 5 s to
-2 h); a running cycle keeps the times it started with.
+**Start cycle** on Home runs them **in order**: pump 1 for its set time, then
+pump 2, 3 and 4. **Skip** ends the cycle's pump at once and starts the next (on
+pump 4 it finishes the cycle); **Stop** switches every pump off. Each pump's
+time is set in **More → Pump timers** (default 1 min, 5 s to 2 h); a running
+cycle keeps the times it started with.
 
-The phone is the sequencer — it sends the next command when each timer runs
-out — and every command also carries the pump's duration, so the firmware can
+Every pump also has its own **on/off switch** on Home, live at any time — with
+no cycle, or in the middle of one. A switch touches that pump and nothing
+else, and never moves the cycle's clock:
+
+- Switching on a pump the cycle is not on runs it alongside the cycle, until
+  it is switched off (at most 2 h — the firmware's safety limit).
+- Switching the cycle's own pump off stops it, but the cycle's countdown runs
+  on; switched back on, it gets only what is left of its step.
+- When the cycle reaches a pump that is already on, it takes it over for its
+  set time and then switches it off. The cycle finishing leaves a pump running
+  by hand alone; **Stop** (or **All off**, with no cycle) switches everything off.
+
+The phone is the sequencer — it sends the next commands when each timer runs
+out — and every "on" command also carries a duration, so the firmware can
 switch a pump off by itself if the link drops or the phone sleeps. Losing the
-link ends the cycle; reconnect and start again. The logic is in
-[pumpCycle.ts](src/features/monitoring/domain/pumpCycle.ts) (pure rules) and
-[pumpSequencer.ts](src/features/monitoring/application/pumpSequencer.ts)
+link ends the cycle and marks every pump off; reconnect and start again. The
+logic is in [pumpCycle.ts](src/features/monitoring/domain/pumpCycle.ts) (pure
+rules) and [pumpSequencer.ts](src/features/monitoring/application/pumpSequencer.ts)
 (timers and commands).
 
 ## Batches
 
 Starting the pump cycle opens a batch, and it closes once pump 4 has run.
-Without the app driving the pumps, a batch opens automatically when the machine
-reports a cycle of its own — or by hand, for a machine that takes no commands
-and never reports a stage — and closes when the machine reports `COMPLETED`. Closing freezes the verdict onto the record along with the
+Pumps run by hand never open one — on a machine the app commands, batches
+come from the cycle (or from a `batch_id` the firmware sends) — but readings
+taken while a batch is open still join it. A machine that takes no commands
+opens a batch automatically when it reports a cycle of its own — or by hand,
+if it never reports a stage — and closes it when it reports `COMPLETED`.
+Closing freezes the verdict onto the record along with the
 thresholds it was graded against. The batch verdict is computed from the
 **mean of the readings taken during the quality-assessment stage**; weight is
 carried as the session total.
@@ -134,7 +149,6 @@ Failing that, the app falls back to the first notifying characteristic it finds.
   "batch_id": "QH-2026-0084",
   "ph": 3.82,
   "temperature_c": 29.7,
-  "moisture_percent": 23.4,
   "conductivity_ms_cm": 1.71,
   "turbidity_ntu": 11.2,
   "weight_kg": 1.83,
@@ -146,14 +160,15 @@ Failing that, the app falls back to the first notifying characteristic it finds.
 
 Every field is optional, keys are case-insensitive, older short names
 (`temp`, `ec`, `weight`, …) still work, unknown keys are ignored, and a packet
-whose `type` is not a sensor update is skipped. The parser and the BLE
+whose `type` is not a sensor update is skipped. The app no longer measures
+moisture: a `moisture_percent` from older firmware is ignored like any other
+unknown key. The parser and the BLE
 reassembly buffer are in
 [readingParser.ts](src/features/monitoring/data/readingParser.ts).
 
-While the app is running a pump, a packet with no `stage` is filed under that
-pump's stage. Send `machine_status` as `RUNNING` while a pump runs and `READY`
-when none does — without it every packet parses as running, and a packet that
-arrives after a cycle has finished opens a new batch.
+While the app has a pump on, a packet with no `stage` is filed under the stage
+of the furthest-along pump that is on. Send that same stage yourself, and
+`machine_status` as `RUNNING` while any pump runs and `READY` when none does.
 
 ### Commands from the app
 
@@ -167,31 +182,44 @@ still connects, but the pump controls stay disabled.
 
 ```json
 {"type":"pump_on","pump":2,"duration_s":90}
+{"type":"pump_off","pump":2}
 {"type":"pump_off"}
 ```
 
-- `pump_on` — run **only** that pump (1–4), switching off any other, and
-  **switch it off by yourself after `duration_s` seconds** even if no further
-  command arrives. The app sends the next `pump_on` when the time is up, or
-  early on Skip.
-- `pump_off` — switch every pump off. Sent on Stop, after pump 4, and before
-  the app disconnects.
+**Each pump is independent.** Several can run at once; a command naming a pump
+touches that pump and no other.
+
+- `pump_on` — switch that pump (1–4) on, leave the others as they are, and
+  **switch it off by yourself after `duration_s` seconds** (1–7200) even if no
+  further command arrives. A pump already on restarts its timer. The cycle
+  sends its pump's set time; a switch on Home sends 7200 (the 2 h safety
+  limit), or what is left of the step for the cycle's own pump.
+- `pump_off` with `pump` — switch that one pump off. The cycle sends it as each
+  step ends, before the next `pump_on`.
+- `pump_off` without `pump` — switch every pump off. Sent on Stop / All off and
+  before the app disconnects.
 - On a BLE disconnect, switch every pump off.
 
 A minimal Arduino handler (ArduinoJson):
 
 ```cpp
+unsigned long offAt[5];   // per pump, index 1..4; 0 = off
+
 void onCommand(const String& line) {
   JsonDocument doc;
   if (deserializeJson(doc, line)) return;
-  allPumpsOff();
-  if (doc["type"] == "pump_on") {
-    int pump = doc["pump"];
-    startPump(pump);
-    pumpOffAt = millis() + doc["duration_s"].as<unsigned long>() * 1000UL;
+  int pump = doc["pump"] | 0;
+  bool valid = pump >= 1 && pump <= 4;
+  if (doc["type"] == "pump_off") {
+    if (valid) pumpOff(pump); else allPumpsOff();
+  } else if (doc["type"] == "pump_on") {
+    unsigned long seconds = doc["duration_s"] | 0UL;
+    if (!valid || seconds == 0) { allPumpsOff(); return; }
+    pumpOn(pump);
+    offAt[pump] = millis() + seconds * 1000UL;
   }
 }
-// In loop(): if (pumpRunning() && (long)(millis() - pumpOffAt) >= 0) allPumpsOff();
+// In loop(): for each pump that is on, if ((long)(millis() - offAt[pump]) >= 0) pumpOff(pump);
 ```
 
 The encoder is [machineCommand.ts](src/features/monitoring/data/machineCommand.ts).
@@ -278,7 +306,8 @@ Profiles are in `eas.json`.
 3. With the ESP32 advertising the Nordic UART service, tap it. The pill turns
    green; the first packet lights up Home and Live.
 4. Tap **Start cycle** on Home and watch the pumps switch over as each timer
-   runs out; try **Skip** and **Stop**. If the firmware exposes no writable
+   runs out; try **Skip** and **Stop**. Flip a pump's switch mid-cycle and
+   check that only that pump changes. If the firmware exposes no writable
    characteristic, the pump controls stay disabled and **Start** on the batch
    card opens a batch by hand instead.
 
@@ -292,9 +321,10 @@ npx drizzle-kit generate     # after editing src/core/database/schema.ts
 
 **On an emulator, switch More → Machine connection to "Simulator".** Emulators
 have no Bluetooth radio. The simulator behaves as the firmware should: it sits
-idle until **Start cycle** runs its pumps, switches each pump off itself when
-its time is up, loads a fresh lot of honey whenever pump 1 starts and fills the
-jar while pump 4 runs. It puts one parameter out of range on every third lot,
+idle until the app runs its pumps, switches each one on and off on its own and
+off by itself when its time is up, loads a fresh lot of honey when pump 1
+starts after the last lot reached the jar, and fills the jar while pump 4
+runs. It puts one parameter out of range on every third lot,
 so batches, alerts and all three recommendations are reachable in a demo. **More → Load sample data**
 writes a season of generated batches for the charts.
 

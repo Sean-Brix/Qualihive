@@ -35,7 +35,6 @@ export const readings = sqliteTable(
     // Nullable throughout: a packet may omit a sensor that is warming up, has
     // failed, or was never fitted to this prototype.
     ph: real('ph'),
-    moisture: real('moisture'),
     temperatureC: real('temperature_c'),
     electricalConductivity: real('electrical_conductivity'),
     turbidity: real('turbidity'),
@@ -90,7 +89,6 @@ export const batches = sqliteTable(
     // session. Kept as columns rather than a blob so the Statistics screen can
     // aggregate across batches in SQL.
     ph: real('ph'),
-    moisture: real('moisture'),
     temperatureC: real('temperature_c'),
     electricalConductivity: real('electrical_conductivity'),
     turbidity: real('turbidity'),

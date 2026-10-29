@@ -190,8 +190,6 @@ export function parameterIcon(parameter: SensorParameter): IconName {
   switch (parameter) {
     case 'ph':
       return 'science';
-    case 'moisture':
-      return 'water-drop';
     case 'temperature':
       return 'thermostat';
     case 'electricalConductivity':

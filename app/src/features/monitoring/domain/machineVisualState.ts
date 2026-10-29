@@ -8,7 +8,7 @@ import {
   type FiltrationStage,
   type MachineStatus,
 } from './machineState';
-import { pumpLabel, stepProgress, type PumpCycle, type PumpNumber } from './pumpCycle';
+import { pumpsLabel, stepProgress, type PumpCycle, type PumpNumber } from './pumpCycle';
 import type { QualityAssessment } from './qualityEvaluation';
 
 /**
@@ -36,11 +36,12 @@ export interface MachineVisualState {
   readonly status: MachineStatus;
   readonly stage: FiltrationStage;
   /**
-   * The one pump the app is running, when the app is driving the cycle.
-   * Pumps run one at a time then, so only this pump and the pipes either
-   * side of it move — not everything upstream of the stage.
+   * The pumps the app has switched on, by the cycle or by hand, lowest
+   * first. When the app is driving the pumps only these and the pipes either
+   * side of them move — not everything upstream of the stage. Empty when
+   * the app is not driving them.
    */
-  readonly activePump: PumpNumber | null;
+  readonly activePumps: readonly PumpNumber[];
   /** Whether the app currently holds a link to the machine. */
   readonly connected: boolean;
   readonly fault: MachineFault;
@@ -66,7 +67,7 @@ export const TELEMETRY_TIMEOUT_MS = 12_000;
 export const IDLE_VISUAL_STATE: MachineVisualState = {
   status: 'disconnected',
   stage: 'idle',
-  activePump: null,
+  activePumps: [],
   connected: false,
   fault: 'none',
   hopperLevel: 0,
@@ -79,7 +80,7 @@ export interface DeriveVisualInput {
   connected: boolean;
   status: MachineStatus;
   stage: FiltrationStage;
-  activePump?: PumpNumber | null;
+  activePumps?: readonly PumpNumber[];
   weightKg?: number | null;
   flowLpm?: number | null;
   assessment?: QualityAssessment | null;
@@ -98,7 +99,7 @@ export function deriveVisualState(input: DeriveVisualInput): MachineVisualState 
   return {
     status: input.status,
     stage: input.stage,
-    activePump: input.activePump ?? null,
+    activePumps: input.activePumps ?? [],
     connected: input.connected,
     fault: faultOf(input.status, input.assessment ?? null, jar),
     hopperLevel: input.hopperLevel ?? indicativeHopperLevel(input.stage),
@@ -140,23 +141,28 @@ export const isRunning = (state: MachineVisualState) =>
 export const isAnimated = (state: MachineVisualState) =>
   isRunning(state) || state.fault !== 'none' || !state.connected;
 
+const drivenByApp = (state: MachineVisualState) => state.activePumps.length > 0;
+
+const switchedOn = (state: MachineVisualState, pump: number) =>
+  flowFront(state) > 0 && state.activePumps.some((p) => p === pump);
+
 /**
  * Pump 1–4. P1 draws from the hopper; P4 fills the jar.
  *
- * With the app driving the cycle only the pump it started runs. Otherwise
- * the machine is reporting a stage, and every pump up to it runs.
+ * With the app driving the pumps only the ones it switched on run.
+ * Otherwise the machine is reporting a stage, and every pump up to it runs.
  */
 export function pumpActive(state: MachineVisualState, pump: number): boolean {
-  if (state.activePump != null) return flowFront(state) > 0 && state.activePump === pump;
+  if (drivenByApp(state)) return switchedOn(state, pump);
   return flowFront(state) >= pump;
 }
 
 /**
- * Filter 1–3. Filter 1 is coarse, filter 3 is the final polish. Under the
- * app's cycle a filter works while the pump feeding it runs.
+ * Filter 1–3. Filter 1 is coarse, filter 3 is the final polish. With the app
+ * driving the pumps a filter works while the pump feeding it runs.
  */
 export function filterActive(state: MachineVisualState, filter: number): boolean {
-  if (state.activePump != null) return flowFront(state) > 0 && state.activePump === filter;
+  if (drivenByApp(state)) return switchedOn(state, filter);
   return flowFront(state) >= filter + 1;
 }
 
@@ -169,7 +175,7 @@ export function routeActive(
   state: MachineVisualState,
   route: { readonly pump: number; readonly activeFrom: number },
 ): boolean {
-  if (state.activePump != null) return pumpActive(state, route.pump);
+  if (drivenByApp(state)) return pumpActive(state, route.pump);
   return flowFront(state) >= route.activeFrom;
 }
 
@@ -209,7 +215,7 @@ export const stopLatched = (state: MachineVisualState) =>
 export function semanticLabel(state: MachineVisualState): string {
   let text = `Filtration machine: ${machineStatusLabel(state.status)}`;
   if (flowFront(state) > 0) {
-    text += state.activePump != null ? `, ${pumpLabel(state.activePump)} running` : `, ${stageLabel(state.stage)}`;
+    text += drivenByApp(state) ? `, ${pumpsLabel(state.activePumps)} running` : `, ${stageLabel(state.stage)}`;
   }
   if (state.fault === 'critical') {
     text += ', fault reported';
@@ -275,7 +281,8 @@ export function visualStatesEqual(a: MachineVisualState, b: MachineVisualState):
   return (
     a.status === b.status &&
     a.stage === b.stage &&
-    a.activePump === b.activePump &&
+    a.activePumps.length === b.activePumps.length &&
+    a.activePumps.every((pump, i) => pump === b.activePumps[i]) &&
     a.connected === b.connected &&
     a.fault === b.fault &&
     a.hopperLevel === b.hopperLevel &&

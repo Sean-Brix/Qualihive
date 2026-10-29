@@ -30,7 +30,7 @@ beforeEach(() => {
 function reading({
   stage = 'qualityAssessment',
   status = 'running',
-  moisture = 23.9,
+  ph = 3.85,
   temperature = 31,
   turbidity = 5,
   weight = 1.0,
@@ -38,7 +38,7 @@ function reading({
 }: {
   stage?: FiltrationStage;
   status?: MachineStatus;
-  moisture?: number | null;
+  ph?: number | null;
   temperature?: number | null;
   turbidity?: number | null;
   weight?: number;
@@ -48,8 +48,7 @@ function reading({
   return makeReading({
     recordedAt: clock,
     batchId: batchId ?? null,
-    ph: 3.85,
-    moisture,
+    ph,
     temperatureC: temperature,
     electricalConductivity: 1.9,
     turbidity,
@@ -155,6 +154,18 @@ describe('batch lifecycle', () => {
     expect(await readings.getForBatch('QH-2026-0084')).toHaveLength(2);
   });
 
+  test('a machine the app drives opens no batch when a pump runs by hand', async () => {
+    await session.handle(reading({ stage: 'qualityAssessment' }), { openOnActivity: false });
+    expect(session.openBatch).toBeNull();
+    expect((await readings.getAll())[0].batchId).toBeNull();
+  });
+
+  test('but its readings still join a batch that is already open', async () => {
+    await session.handle(reading({ stage: 'extracting' }));
+    await session.handle(reading({ stage: 'qualityAssessment' }), { openOnActivity: false });
+    expect(session.openBatch!.readingCount).toBe(2);
+  });
+
   test('a closed batch keeps the state it was closed in', async () => {
     await session.handle(reading({ stage: 'extracting' }));
     await session.finish();
@@ -167,12 +178,12 @@ describe('batch lifecycle', () => {
 
 describe('verdict', () => {
   test('averages the assessment-stage readings rather than taking one', async () => {
-    // 22.0 and 25.8 straddle the band; their mean sits inside it.
-    await session.handle(reading({ moisture: 22.0 }));
-    await session.handle(reading({ moisture: 25.8 }));
+    // 3.55 and 4.15 each sit outside the accepted band; their mean sits inside it.
+    await session.handle(reading({ ph: 3.55 }));
+    await session.handle(reading({ ph: 4.15 }));
     await session.handle(reading({ stage: 'completed' }));
     const [batch] = await batches.getAll();
-    expect(batch.snapshot!.moisture).toBeCloseTo(23.9, 3);
+    expect(batch.snapshot!.ph).toBeCloseTo(3.85, 3);
     expect(batch.assessment).toBe('acceptable');
   });
 
@@ -194,9 +205,9 @@ describe('verdict', () => {
   test('stored results keep the thresholds they were graded against', async () => {
     await session.handle(reading());
     await session.handle(reading({ stage: 'completed' }));
-    const result = resultOf((await batches.getAll())[0], 'moisture')!;
-    expect(result.min).toBe(22.0);
-    expect(result.max).toBe(25.8);
+    const result = resultOf((await batches.getAll())[0], 'electricalConductivity')!;
+    expect(result.min).toBe(1.28);
+    expect(result.max).toBe(2.52);
     expect(result.status).toBe('acceptable');
   });
 });
@@ -210,10 +221,10 @@ describe('alerts', () => {
   });
 
   test('an out-of-range reading raises a critical alert', async () => {
-    await session.handle(reading({ moisture: 30 }));
+    await session.handle(reading({ ph: 3.2 }));
     const alert = (await raised()).find((a) => a.kind === 'parameterOutOfRange')!;
     expect(alert.severity).toBe('critical');
-    expect(alert.title).toContain('Moisture');
+    expect(alert.title).toContain('pH');
     expect(alert.batchCode).toBe('QH-2026-0001');
   });
 
@@ -224,9 +235,9 @@ describe('alerts', () => {
   });
 
   test('a parameter that stays bad does not repeat itself', async () => {
-    await session.handle(reading({ moisture: 30 }));
-    await session.handle(reading({ moisture: 30 }));
-    await session.handle(reading({ moisture: 30 }));
+    await session.handle(reading({ ph: 3.2 }));
+    await session.handle(reading({ ph: 3.2 }));
+    await session.handle(reading({ ph: 3.2 }));
     expect((await raised()).filter((a) => a.kind === 'parameterOutOfRange')).toHaveLength(1);
   });
 

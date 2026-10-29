@@ -267,7 +267,7 @@ function ReadingsCard({ readings }: { readings: SensorReading[] }) {
 function summarise(reading: SensorReading): string {
   const parts: string[] = [];
   if (reading.ph != null) parts.push(`pH ${reading.ph.toFixed(2)}`);
-  if (reading.moisture != null) parts.push(`${reading.moisture.toFixed(1)}%`);
+  if (reading.turbidity != null) parts.push(`${reading.turbidity.toFixed(1)} NTU`);
   if (reading.temperatureC != null) parts.push(`${reading.temperatureC.toFixed(1)}°C`);
   return parts.join('  ');
 }

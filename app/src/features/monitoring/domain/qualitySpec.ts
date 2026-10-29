@@ -52,7 +52,6 @@ export const isProblemStatus = (s: QualityStatus) => s === 'warning' || s === 'o
  */
 export type SensorParameter =
   | 'ph'
-  | 'moisture'
   | 'temperature'
   | 'electricalConductivity'
   | 'turbidity'
@@ -62,7 +61,6 @@ export type SensorParameter =
 
 export const SENSOR_PARAMETERS: readonly SensorParameter[] = [
   'ph',
-  'moisture',
   'temperature',
   'electricalConductivity',
   'turbidity',
@@ -76,8 +74,6 @@ export function wireKey(parameter: SensorParameter): string {
   switch (parameter) {
     case 'ph':
       return 'ph';
-    case 'moisture':
-      return 'moisture_percent';
     case 'temperature':
       return 'temperature_c';
     case 'electricalConductivity':
@@ -163,11 +159,11 @@ const unitSuffix = (spec: ParameterSpec) => (spec.unit.length === 0 ? '' : ` ${s
 
 export const formatValue = (spec: ParameterSpec, value: number) => value.toFixed(spec.decimals);
 
-/** Value with its unit, e.g. `23.4 %`. */
+/** Value with its unit, e.g. `1.71 mS/cm`. */
 export const formatWithUnit = (spec: ParameterSpec, value: number) =>
   `${formatValue(spec, value)}${unitSuffix(spec)}`;
 
-/** Human-readable form of the accepted range, e.g. `22.0–25.8 %`. */
+/** Human-readable form of the accepted range, e.g. `1.28–2.52 mS/cm`. */
 export function rangeLabel(spec: ParameterSpec): string {
   if (!spec.rated) return 'Not graded';
   if (spec.min != null && spec.max != null) {
@@ -258,18 +254,6 @@ const PH = makeSpec({
   note: 'Acidity of the honey. Contributes to freshness and to the overall quality assessment.',
 });
 
-const MOISTURE = makeSpec({
-  parameter: 'moisture',
-  label: 'Moisture',
-  unit: '%',
-  min: 22.0,
-  max: 25.8,
-  warnMin: 20.0,
-  warnMax: 27.0,
-  source: 'survey',
-  note: 'Estimated water content. Excess moisture is linked to fermentation and reduced storage stability.',
-});
-
 const TEMPERATURE = makeSpec({
   parameter: 'temperature',
   label: 'Temperature',
@@ -352,7 +336,7 @@ export interface QualityStandard {
  * placeholders where the researchers have not yet confirmed a range.
  */
 export const DEFAULT_STANDARD: QualityStandard = {
-  specs: [PH, MOISTURE, TEMPERATURE, ELECTRICAL_CONDUCTIVITY, TURBIDITY, COLOR, WEIGHT, FLOW],
+  specs: [PH, TEMPERATURE, ELECTRICAL_CONDUCTIVITY, TURBIDITY, COLOR, WEIGHT, FLOW],
 };
 
 export function specOf(standard: QualityStandard, parameter: SensorParameter): ParameterSpec {

@@ -58,7 +58,6 @@ export interface BatchRepository {
 export function batchFromRow(row: BatchRow): Batch {
   const hasSnapshot =
     row.ph != null ||
-    row.moisture != null ||
     row.temperatureC != null ||
     row.electricalConductivity != null ||
     row.turbidity != null ||
@@ -83,7 +82,6 @@ export function batchFromRow(row: BatchRow): Batch {
           recordedAt: row.endedAt ?? row.startedAt,
           batchId: row.code,
           ph: row.ph,
-          moisture: row.moisture,
           temperatureC: row.temperatureC,
           electricalConductivity: row.electricalConductivity,
           turbidity: row.turbidity,
@@ -124,7 +122,6 @@ export function batchToRow(batch: Batch): NewBatchRow {
     machineStatus: batch.machineStatus,
     readingCount: batch.readingCount,
     ph: snapshot?.ph ?? null,
-    moisture: snapshot?.moisture ?? null,
     temperatureC: snapshot?.temperatureC ?? null,
     electricalConductivity: snapshot?.electricalConductivity ?? null,
     turbidity: snapshot?.turbidity ?? null,
