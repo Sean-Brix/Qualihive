@@ -18,7 +18,7 @@
  * farm. Generate a real keystore before any store upload.
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, copyFileSync } from 'node:fs';
+import { existsSync, mkdirSync, copyFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -40,6 +40,19 @@ if (!existsSync(join(root, 'android'))) {
 }
 
 const androidDir = join(root, 'android');
+
+// android/ is generated once by prebuild and then left alone, so bumping the
+// version in app.json never reached the APK on its own: the app went on calling
+// itself 1.5.0 through several releases. Copy it across before every build.
+const { version } = JSON.parse(readFileSync(join(root, 'app.json'), 'utf8')).expo;
+const gradleFile = join(androidDir, 'app', 'build.gradle');
+const gradleText = readFileSync(gradleFile, 'utf8');
+const synced = gradleText.replace(/versionName\s+"[^"]*"/, `versionName "${version}"`);
+if (synced !== gradleText) {
+  writeFileSync(gradleFile, synced);
+  console.log(`Set versionName to ${version} from app.json.`);
+}
+
 const gradle = join(androidDir, isWindows ? 'gradlew.bat' : 'gradlew');
 const task = variant === 'release' ? 'assembleRelease' : 'assembleDebug';
 // 64-bit ARM covers every phone since 2016; x86_64 covers the emulator. Skipping
