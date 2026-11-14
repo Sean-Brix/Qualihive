@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { Image } from 'expo-image';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { Card } from '@/core/components/Card';
@@ -98,6 +99,12 @@ interface Developer {
   name: string;
   role: string;
   responsibility: string;
+  /**
+   * A square crop of the photo in assets/developers, framed so every head sits
+   * at the same size inside the circle. The full-size originals stay beside
+   * them as the source and are not bundled.
+   */
+  photo: number;
 }
 
 /** The project team, in the order the project documentation lists them. */
@@ -107,35 +114,36 @@ const DEVELOPERS: Developer[] = [
     role: 'Project Leader',
     responsibility:
       'Responsible for leading the team, coordinating project activities, assigning tasks, and monitoring the overall development of the Arduino-Based Honey Filtration with Quality Assessment System for Honey Ko Bee Farm.',
+    photo: require('../../../../assets/developers/avatars/francelle.jpg'),
   },
   {
     name: 'Tyron John Lucas',
     role: 'System Developer',
     responsibility:
       'Responsible for developing and programming the Arduino-based system, integrating electronic components and sensors, and ensuring the proper operation of the honey filtration and quality assessment processes.',
+    photo: require('../../../../assets/developers/avatars/tyron.jpg'),
   },
   {
     name: 'Jamaica Mae Damance',
     role: 'UI/UX Designer',
     responsibility:
       "Responsible for designing the system's user interface, organizing the display of honey quality assessment results, and ensuring that the interface is simple, clear, and user-friendly.",
+    photo: require('../../../../assets/developers/avatars/jamaica.jpg'),
   },
   {
     name: 'Shaine Estrella',
     role: 'Documentation Specialist',
     responsibility:
       'Responsible for preparing the project documentation, writing research chapters, recording the development process, and organizing the results of system testing and evaluation.',
+    photo: require('../../../../assets/developers/avatars/shaine.jpg'),
   },
 ];
 
-/** First and last initials, for the avatar. */
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
-  return (first + last).toUpperCase();
-}
-
+/**
+ * Photo, name and role on one line; the responsibility underneath at the full
+ * width of the card. Beside the photo it would get a column barely 170 pt wide
+ * on a small phone and run to eight or nine lines.
+ */
 function DeveloperRow({ developer, first }: { developer: Developer; first: boolean }) {
   const { scheme } = useTheme();
   return (
@@ -145,24 +153,30 @@ function DeveloperRow({ developer, first }: { developer: Developer; first: boole
         !first && { borderTopWidth: StyleSheet.hairlineWidth * 2, borderTopColor: scheme.outlineVariant },
       ]}
     >
-      <View style={[styles.avatar, { backgroundColor: scheme.primaryContainer }]}>
-        <Text variant="labelLarge" weight="800" color={scheme.onPrimaryContainer}>
-          {initials(developer.name)}
-        </Text>
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text variant="titleSmall" weight="700">
-          {developer.name}
-        </Text>
-        <View style={[styles.role, { backgroundColor: scheme.secondaryContainer }]}>
-          <Text variant="labelSmall" weight="700" color={scheme.onSecondaryContainer}>
-            {developer.role}
-          </Text>
+      <View style={styles.developerHeader}>
+        <View style={[styles.photoRing, { borderColor: scheme.secondaryContainer }]}>
+          <Image
+            source={developer.photo}
+            accessibilityLabel={`Photo of ${developer.name}`}
+            contentFit="cover"
+            transition={150}
+            style={[styles.photo, { backgroundColor: scheme.surfaceContainerHighest }]}
+          />
         </View>
-        <Text variant="bodySmall" color={scheme.onSurfaceVariant} style={{ marginTop: 8, lineHeight: 18 }}>
-          {developer.responsibility}
-        </Text>
+        <View style={{ flex: 1 }}>
+          <Text variant="titleMedium" weight="700">
+            {developer.name}
+          </Text>
+          <View style={[styles.role, { backgroundColor: scheme.secondaryContainer }]}>
+            <Text variant="labelSmall" weight="700" color={scheme.onSecondaryContainer}>
+              {developer.role}
+            </Text>
+          </View>
+        </View>
       </View>
+      <Text variant="bodySmall" color={scheme.onSurfaceVariant} style={styles.responsibility}>
+        {developer.responsibility}
+      </Text>
     </View>
   );
 }
@@ -185,11 +199,15 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, paddingTop: 20 },
   hero: { alignItems: 'center' },
   specRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
-  developer: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, padding: 16 },
-  avatar: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  developer: { padding: 16 },
+  developerHeader: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  // The photos are shot on white, which would melt into a light card; the ring holds the edge.
+  photoRing: { flexShrink: 0, padding: 2, borderWidth: 2, borderRadius: 36 },
+  photo: { width: 60, height: 60, borderRadius: 30 },
+  responsibility: { marginTop: 12, lineHeight: 19 },
   role: {
     alignSelf: 'flex-start',
-    marginTop: 4,
+    marginTop: 5,
     paddingHorizontal: 9,
     paddingVertical: 3,
     borderRadius: radii.pill,
