@@ -62,7 +62,7 @@ export function HistoryScreen() {
   return (
     <Screen>
       <AppBar
-        title="History"
+        title="Session"
         actions={<IconButton icon="more-vert" accessibilityLabel="More options" onPress={() => setMenu(true)} />}
       />
       <OptionsSheet
@@ -74,7 +74,7 @@ export function HistoryScreen() {
       {loading ? (
         <Loading />
       ) : error ? (
-        <Message icon="error-outline" title="Could not read the history" body={String(error.message)} />
+        <Message icon="error-outline" title="Could not read the sessions" body={String(error.message)} />
       ) : (
         <>
           <FilterBar selected={filter} counts={counts} onChange={setFilter} />

@@ -86,7 +86,6 @@ interface MonitoringState {
   stopPumps(): Promise<boolean>;
   /** Closes the open batch and freezes its verdict. */
   finishBatch(notes?: string): Promise<void>;
-  saveNotes(batch: Batch, notes: string): Promise<void>;
   deleteBatch(batch: Batch): Promise<void>;
   clearHistory(): Promise<void>;
   /**
@@ -318,8 +317,6 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => {
         if (sequencer.isRunning) await sequencer.stop('Stopped when the batch was finished.');
         await inSession(() => batchSession.finish({ notes }));
       }),
-
-    saveNotes: (batch, notes) => guarded(() => batchRepository.update({ ...batch, notes })),
 
     deleteBatch: (batch) =>
       guarded(async () => {

@@ -1,8 +1,8 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 
-import { Button, IconButton } from '@/core/components/Button';
+import { IconButton } from '@/core/components/Button';
 import { Card } from '@/core/components/Card';
 import { Icon } from '@/core/components/Icon';
 import { ListTile } from '@/core/components/ListTile';
@@ -13,6 +13,7 @@ import { useTheme } from '@/core/theme/useTheme';
 import { formatDuration, formatHms, formatYMMMdHm } from '@/core/utils/dates';
 import { useMonitoringStore } from '@/features/monitoring/application/monitoringStore';
 import { useBatchByCode, useBatchReadings } from '@/features/monitoring/application/queries';
+import { SAMPLE_DATA_MARKER } from '@/features/monitoring/data/sampleDataSeeder';
 import {
   batchDurationMs,
   batchWeightKg,
@@ -90,8 +91,6 @@ export function BatchDetailScreen({ code }: { code: string }) {
           <View style={{ height: 18 }} />
           <ResultsTable batch={batch} />
           <View style={{ height: 18 }} />
-          <NotesCard batch={batch} />
-          <View style={{ height: 18 }} />
           <ReadingsCard readings={readings} />
         </ScrollView>
       )}
@@ -116,6 +115,7 @@ function SessionCard({ batch, readingCount }: { batch: Batch; readingCount: numb
       <KeyValue label="Machine" value={batch.deviceName ?? batch.deviceId ?? 'Not recorded'} />
       <KeyValue label="Readings" value={String(readingCount)} />
       {weight != null && <KeyValue label="Quantity processed" value={`${weight.toFixed(2)} kg`} />}
+      {batch.notes === SAMPLE_DATA_MARKER && <KeyValue label="Origin" value="Sample data, not a real run" />}
       <View style={{ height: 16 }} />
       <StageTimeline stage={batch.stage} machineStatus={batch.machineStatus} />
       <Text variant="labelSmall" color={scheme.onSurfaceVariant} style={{ marginTop: 8 }}>
@@ -171,48 +171,6 @@ function ResultRow({ result }: { result: BatchParameterResult }) {
         accessibilityLabel={statusChipLabel(status)}
       />
     </View>
-  );
-}
-
-/** Free-text remarks (§7). */
-function NotesCard({ batch }: { batch: Batch }) {
-  const { scheme } = useTheme();
-  const saveNotes = useMonitoringStore((s) => s.saveNotes);
-  const [text, setText] = useState(batch.notes ?? '');
-  const [dirty, setDirty] = useState(false);
-
-  return (
-    <Card padding={16}>
-      <Text variant="titleSmall" weight="700">
-        Notes
-      </Text>
-      <TextInput
-        value={text}
-        onChangeText={(value) => {
-          setText(value);
-          setDirty(true);
-        }}
-        multiline
-        placeholder="Remarks about this batch…"
-        placeholderTextColor={scheme.outline}
-        style={[
-          styles.notes,
-          { color: scheme.onSurface, borderColor: scheme.outlineVariant, backgroundColor: scheme.inputFill },
-        ]}
-      />
-      {dirty && (
-        <View style={{ alignItems: 'flex-end', marginTop: 10 }}>
-          <Button
-            variant="tonal"
-            compact
-            label="Save notes"
-            onPress={() => {
-              void saveNotes(batch, text).then(() => setDirty(false));
-            }}
-          />
-        </View>
-      )}
-    </Card>
   );
 }
 
@@ -290,16 +248,5 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 12 },
   missing: { padding: 32, alignItems: 'center' },
   resultRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 7 },
-  notes: {
-    marginTop: 10,
-    minHeight: 72,
-    maxHeight: 160,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
-    textAlignVertical: 'top',
-  },
   keyValue: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 4 },
 });

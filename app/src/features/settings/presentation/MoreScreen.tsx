@@ -66,7 +66,7 @@ export function MoreScreen() {
       loaded ? 'Remove sample data?' : 'Load sample data?',
       loaded
         ? 'The generated batches and their readings are deleted. Batches you actually ran are left alone.'
-        : 'Writes 24 completed batches across the last two months so Statistics and History have something to show. Each one is marked as sample data and can be removed again.',
+        : 'Writes 24 completed batches across the last two months so the Statistics and Session tabs have something to show. Each one is marked as sample data and can be removed again.',
       [
         { text: 'Cancel', style: 'cancel' },
         {

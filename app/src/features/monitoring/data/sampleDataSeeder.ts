@@ -31,7 +31,7 @@ export interface SeedOptions {
 /**
  * Fills the archive with a season of plausible batches.
  *
- * Statistics, History and the export screens all read from closed batches, so
+ * Statistics, Session and the export screens all read from closed batches, so
  * a fresh install has nothing to chart and nothing to show anybody. This
  * writes records that travel exactly the same path a real run does —
  * [BatchRun] produces the readings, [aggregateReadings] folds them into a
@@ -42,7 +42,7 @@ export interface SeedOptions {
  * Every record carries [SAMPLE_DATA_MARKER] in its notes. That is what lets
  * [remove] take the demonstration data back out again without touching a
  * batch the beekeeper actually ran, and what makes a seeded record honest
- * about its origin when somebody opens it in History.
+ * about its origin when somebody opens it in the Session tab.
  */
 export class SampleDataSeeder {
   constructor(

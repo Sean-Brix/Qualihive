@@ -6,6 +6,7 @@ import { Icon } from '@/core/components/Icon';
 import { QualihiveLogo } from '@/core/components/QualihiveLogo';
 import { AppBar, Screen, useBottomPadding } from '@/core/components/Screen';
 import { Text } from '@/core/components/Text';
+import { radii } from '@/core/theme/theme';
 import { useTheme } from '@/core/theme/useTheme';
 import { isProvisional, rangeLabel, thresholdSourceLabel } from '@/features/monitoring/domain/qualitySpec';
 import { parameterIcon } from '@/features/monitoring/presentation/widgets/qualityColors';
@@ -76,10 +77,93 @@ export function AboutScreen() {
 
         <Section
           title="Project"
-          body="Arduino-Based Honey Filtration with Quality Assessment System for Honey Ko Bee Farm. The filtration machine handles the physical processing and sensing; this application handles presentation, assessment rules, batch history and alerts."
+          body="Arduino-Based Honey Filtration with Quality Assessment System for Honey Ko Bee Farm. The filtration machine handles the physical processing and sensing; this application handles presentation, assessment rules, session records and alerts."
         />
+
+        <Text variant="labelSmall" color={scheme.primary} weight="700" letterSpacing={0.8}>
+          ABOUT THE DEVELOPERS
+        </Text>
+        <View style={{ height: 10 }} />
+        <Card>
+          {DEVELOPERS.map((developer, index) => (
+            <DeveloperRow key={developer.name} developer={developer} first={index === 0} />
+          ))}
+        </Card>
       </ScrollView>
     </Screen>
+  );
+}
+
+interface Developer {
+  name: string;
+  role: string;
+  responsibility: string;
+}
+
+/** The project team, in the order the project documentation lists them. */
+const DEVELOPERS: Developer[] = [
+  {
+    name: 'Francelle Jane Cajayon',
+    role: 'Project Leader',
+    responsibility:
+      'Responsible for leading the team, coordinating project activities, assigning tasks, and monitoring the overall development of the Arduino-Based Honey Filtration with Quality Assessment System for Honey Ko Bee Farm.',
+  },
+  {
+    name: 'Tyron John Lucas',
+    role: 'System Developer',
+    responsibility:
+      'Responsible for developing and programming the Arduino-based system, integrating electronic components and sensors, and ensuring the proper operation of the honey filtration and quality assessment processes.',
+  },
+  {
+    name: 'Jamaica Mae Damance',
+    role: 'UI/UX Designer',
+    responsibility:
+      "Responsible for designing the system's user interface, organizing the display of honey quality assessment results, and ensuring that the interface is simple, clear, and user-friendly.",
+  },
+  {
+    name: 'Shaine Estrella',
+    role: 'Documentation Specialist',
+    responsibility:
+      'Responsible for preparing the project documentation, writing research chapters, recording the development process, and organizing the results of system testing and evaluation.',
+  },
+];
+
+/** First and last initials, for the avatar. */
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  const first = parts[0]?.[0] ?? '';
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
+  return (first + last).toUpperCase();
+}
+
+function DeveloperRow({ developer, first }: { developer: Developer; first: boolean }) {
+  const { scheme } = useTheme();
+  return (
+    <View
+      style={[
+        styles.developer,
+        !first && { borderTopWidth: StyleSheet.hairlineWidth * 2, borderTopColor: scheme.outlineVariant },
+      ]}
+    >
+      <View style={[styles.avatar, { backgroundColor: scheme.primaryContainer }]}>
+        <Text variant="labelLarge" weight="800" color={scheme.onPrimaryContainer}>
+          {initials(developer.name)}
+        </Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text variant="titleSmall" weight="700">
+          {developer.name}
+        </Text>
+        <View style={[styles.role, { backgroundColor: scheme.secondaryContainer }]}>
+          <Text variant="labelSmall" weight="700" color={scheme.onSecondaryContainer}>
+            {developer.role}
+          </Text>
+        </View>
+        <Text variant="bodySmall" color={scheme.onSurfaceVariant} style={{ marginTop: 8, lineHeight: 18 }}>
+          {developer.responsibility}
+        </Text>
+      </View>
+    </View>
   );
 }
 
@@ -101,4 +185,13 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, paddingTop: 20 },
   hero: { alignItems: 'center' },
   specRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
+  developer: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, padding: 16 },
+  avatar: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  role: {
+    alignSelf: 'flex-start',
+    marginTop: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: radii.pill,
+  },
 });

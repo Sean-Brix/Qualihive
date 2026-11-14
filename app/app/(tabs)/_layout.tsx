@@ -20,7 +20,7 @@ const TABS: { name: string; label: string; icon: IconName }[] = [
   { name: 'index', label: 'Home', icon: 'home' },
   { name: 'live', label: 'Live', icon: 'monitor-heart' },
   { name: 'statistics', label: 'Statistics', icon: 'insights' },
-  { name: 'history', label: 'History', icon: 'history' },
+  { name: 'history', label: 'Session', icon: 'history' },
   { name: 'more', label: 'More', icon: 'more-horiz' },
 ];
 

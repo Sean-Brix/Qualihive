@@ -95,10 +95,17 @@ export function HomeScreen() {
         <View style={{ height: 12 }} />
         <MachinePanel />
         <View style={{ height: 12 }} />
+        {/* Connecting comes before anything the pumps can do, so it sits above them. */}
+        {evaluation == null && (
+          <>
+            <WaitingCard status={status} />
+            <View style={{ height: 12 }} />
+          </>
+        )}
         <PumpCycleCard />
         <View style={{ height: 22 }} />
 
-        {evaluation != null ? (
+        {evaluation != null && (
           <>
             <SectionHeading
               eyebrow="LIVE QUALITY"
@@ -117,11 +124,9 @@ export function HomeScreen() {
             <EvaluationBanner evaluation={evaluation} compact />
             <View style={{ height: 12 }} />
             <HeadlineGrid evaluation={evaluation} />
+            <View style={{ height: 22 }} />
           </>
-        ) : (
-          <WaitingCard status={status} />
         )}
-        <View style={{ height: 22 }} />
 
         <BatchCard batch={batch} status={status} />
 
