@@ -76,9 +76,21 @@ class BlePeripheral:
         return asyncio.run_coroutine_threadsafe(coro, self.loop)
 
     async def start(self):
-        adapter = await BluetoothAdapter.get_default_async()
+        await self.stop()
+        self.provider = None
+        self.tx = None
+        # Windows can take a few seconds to enumerate a newly plugged-in dongle.
+        # A single failed lookup used to leave the simulator offline permanently.
+        adapter = None
+        for attempt in range(5):
+            adapter = await BluetoothAdapter.get_default_async()
+            if adapter is not None:
+                break
+            if attempt < 4:
+                self.events.put(("status", "Waiting for a Bluetooth adapter. Checking again in 2 seconds…"))
+                await asyncio.sleep(2)
         if adapter is None:
-            self.events.put(("status", "No Bluetooth adapter found. Plug in the dongle and restart."))
+            self.events.put(("status", "No Bluetooth adapter found. Plug in the dongle, then click Retry Bluetooth."))
             return
         if not adapter.is_peripheral_role_supported:
             self.events.put(("status", "This Bluetooth adapter cannot act as a device (no peripheral role)."))
@@ -171,9 +183,10 @@ class App:
 
         self.cycle_job = None
         self.auto_job = None
+        self.starting_bluetooth = False
 
         self._build()
-        self.ble.run(self.ble.start())
+        self._start_bluetooth()
         self.root.after(100, self._drain_events)
         self.root.protocol("WM_DELETE_WINDOW", self._close)
 
@@ -190,6 +203,8 @@ class App:
         ttk.Label(top, text=socket.gethostname(), font=("Segoe UI", 12, "bold")).grid(row=0, column=1, sticky="w", padx=6)
         ttk.Label(top, textvariable=self.ble_status, wraplength=520).grid(row=1, column=0, columnspan=2, sticky="w")
         ttk.Label(top, textvariable=self.clients, foreground="#1a6b3c").grid(row=2, column=0, columnspan=2, sticky="w")
+        self.retry_bluetooth = ttk.Button(top, text="Retry Bluetooth", command=self._start_bluetooth)
+        self.retry_bluetooth.grid(row=3, column=0, sticky="w", pady=4)
 
         sensors = ttk.LabelFrame(self.root, text="Sensor values")
         sensors.pack(fill="x", **pad)
@@ -339,6 +354,27 @@ class App:
 
     # ---- plumbing ---------------------------------------------------------
 
+    def _start_bluetooth(self):
+        if self.starting_bluetooth:
+            return
+        self.starting_bluetooth = True
+        self.retry_bluetooth.config(state="disabled")
+        self.ble_status.set("Starting Bluetooth…")
+        self.clients.set("No phone connected")
+        future = self.ble.run(self.ble.start())
+
+        def done(result):
+            try:
+                result.result()
+            except Exception as error:
+                # Startup runs on a background loop. Report its exceptions in
+                # the UI instead of leaving an unobserved failed Future.
+                self.events.put(("status", f"Bluetooth startup failed: {error}. Click Retry Bluetooth."))
+            finally:
+                self.events.put(("bluetooth_start_finished", None))
+
+        future.add_done_callback(done)
+
     def _drain_events(self):
         while not self.events.empty():
             kind, value = self.events.get_nowait()
@@ -350,6 +386,9 @@ class App:
                 self._log(f"- subscribers: {value}")
             elif kind == "log":
                 self._log(value)
+            elif kind == "bluetooth_start_finished":
+                self.starting_bluetooth = False
+                self.retry_bluetooth.config(state="normal")
         self.root.after(100, self._drain_events)
 
     def _log(self, text: str):

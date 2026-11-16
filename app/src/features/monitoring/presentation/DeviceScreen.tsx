@@ -19,7 +19,6 @@ import {
 } from '../application/monitoringStore';
 import {
   deviceDisplayName,
-  isBusy,
   isConnected,
   transportLabel,
   type TransportStatus,
@@ -32,6 +31,7 @@ export function DeviceScreen() {
   const status = useMonitoringStore((s) => s.status);
   const devices = useMonitoringStore((s) => s.discovered);
   const mode = useMonitoringStore((s) => s.transportKind);
+  const switchingTransport = useMonitoringStore((s) => s.switchingTransport);
   const error = useMonitoringStore((s) => s.error);
   const clearError = useMonitoringStore((s) => s.clearError);
   const selectTransport = useMonitoringStore((s) => s.selectTransport);
@@ -72,6 +72,12 @@ export function DeviceScreen() {
             Generates readings locally. Use this on an emulator, which has no Bluetooth radio.
           </Text>
         )}
+        {mode === 'ble' && (
+          <Text variant="bodySmall" style={{ marginTop: 8 }}>
+            Connect here to the machine’s Bluetooth LE device. On Android 11 and older, turn on
+            Location as well as Bluetooth before scanning.
+          </Text>
+        )}
         <View style={{ height: 20 }} />
 
         {isConnected(status) ? (
@@ -80,6 +86,7 @@ export function DeviceScreen() {
           <Button
             label={scanning ? 'Stop scanning' : 'Scan for devices'}
             icon={scanning ? 'stop' : 'bluetooth-searching'}
+            disabled={switchingTransport || status.state === 'connecting'}
             onPress={() => void (scanning ? stopScan() : scan())}
           />
         )}
@@ -113,7 +120,7 @@ export function DeviceScreen() {
                   </Text>
                 )
               }
-              disabled={isBusy(status)}
+              disabled={switchingTransport || status.state === 'connecting' || isConnected(status)}
               onPress={() => void connect(device)}
             />
           ))

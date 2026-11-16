@@ -14,13 +14,14 @@ assessment, built for Honey Ko Bee Farm.
 ## Publishing a new version
 
 1. Bump `version` in [`app/app.json`](app/app.json).
-2. Build the APK and copy it next to the download page:
+2. Build the latest release APK and update the download page together:
    ```bash
-   cd app && npm run build:apk
-   cp dist/qualihive-release.apk ../site/qualihive-release.apk
+   cd app
+   npm run update
    ```
-3. Update the version pill (`id="version"`) in [`site/index.html`](site/index.html),
-   then commit and push to `main`. Render redeploys `site/` and serves the new APK.
+   This copies the new APK to `site/qualihive-release.apk` and sets the website's
+   version from `app/app.json`. If the build fails, the site is left unchanged.
+3. Commit and push to `main`. Render redeploys `site/` and serves the new APK.
 
 ## One-time GitHub setup
 

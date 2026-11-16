@@ -57,6 +57,7 @@
     "test": "jest",
     "prebuild": "expo prebuild",
     "build:apk": "node scripts/build-apk.mjs",
+    "update": "npm run build:apk && node scripts/update-site.mjs",
     "build:apk:dev": "node scripts/build-apk.mjs --dev",
     "build:eas:dev": "eas build --profile development --platform android",
     "build:eas:preview": "eas build --profile preview --platform android",

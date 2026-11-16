@@ -90,6 +90,8 @@ export class BleSensorTransport implements SensorTransport {
   private valueSubscription: Subscription | null = null;
   private scanTimer: ReturnType<typeof setTimeout> | null = null;
   private scanning = false;
+  private connectionAttempt = 0;
+  private connecting: Promise<void> | null = null;
 
   constructor({
     serviceUuid = NORDIC_UART_SERVICE,
@@ -104,13 +106,13 @@ export class BleSensorTransport implements SensorTransport {
 
     this.stateSubscription = this.manager.onStateChange((state) => {
       if (state !== State.PoweredOn) {
+        this.connectionAttempt++;
+        void this.stopScan();
+        void this.teardownConnection();
         this.emit({
           state: 'unavailable',
           device: null,
-          message:
-            state === State.Unsupported
-              ? 'This device has no Bluetooth LE radio.'
-              : 'Turn on Bluetooth to connect.',
+          message: unavailableMessage(state),
         });
       } else if (this.currentStatus.state === 'unavailable') {
         this.emit(DISCONNECTED);
@@ -141,27 +143,8 @@ export class BleSensorTransport implements SensorTransport {
   }
 
   async startScan(timeoutMs = 10_000): Promise<void> {
-    const state = await this.manager.state();
-    if (state === State.Unsupported) {
-      this.emit({
-        state: 'unavailable',
-        device: null,
-        message: 'This device has no Bluetooth LE radio.',
-      });
-      return;
-    }
-
-    // Asked here rather than in the store so that non-BLE transports never
-    // trigger a Bluetooth permission prompt.
-    if (!(await ensureBlePermissions())) {
-      this.emit({ state: 'unavailable', device: null, message: 'Bluetooth permission denied.' });
-      return;
-    }
-
-    if (state !== State.PoweredOn) {
-      this.emit({ state: 'unavailable', device: null, message: 'Turn on Bluetooth to connect.' });
-      return;
-    }
+    if (this.scanning || this.currentStatus.state === 'connecting' || this.device != null) return;
+    if (!(await this.ensureReady())) return;
 
     this.devices = [];
     this.deviceEmitter.emit([]);
@@ -173,6 +156,7 @@ export class BleSensorTransport implements SensorTransport {
       const finish = async () => {
         if (!this.scanning) return;
         this.scanning = false;
+        this.stopScanResolver = null;
         if (this.scanTimer) clearTimeout(this.scanTimer);
         this.scanTimer = null;
         try {
@@ -184,19 +168,28 @@ export class BleSensorTransport implements SensorTransport {
         resolve();
       };
 
-      // Scans for everything rather than filtering on the service UUID —
-      // many dev boards do not advertise their service in the scan record.
-      this.manager.startDeviceScan(null, { allowDuplicates: false }, (error, scanned) => {
-        if (error) {
-          this.emit({ state: 'error', device: null, message: error.message });
-          void finish();
-          return;
-        }
-        if (scanned) this.addDevice(scanned);
-      });
-
-      this.scanTimer = setTimeout(() => void finish(), timeoutMs);
       this.stopScanResolver = finish;
+      this.scanTimer = setTimeout(() => void finish(), timeoutMs);
+
+      const fail = (error: unknown) => {
+        if (!this.scanning) return;
+        this.emit({ state: 'error', device: null, message: describe(error) });
+        void finish();
+      };
+      // Scans for everything: some boards omit the service in advertisements.
+      // Newer ble-plx versions also report startup failures by rejecting the promise.
+      try {
+        void this.manager.startDeviceScan(null, { allowDuplicates: false }, (error, scanned) => {
+          if (!this.scanning) return;
+          if (error) {
+            fail(error);
+            return;
+          }
+          if (scanned) this.addDevice(scanned);
+        }).catch(fail);
+      } catch (error) {
+        fail(error);
+      }
     });
   }
 
@@ -212,36 +205,60 @@ export class BleSensorTransport implements SensorTransport {
     }
   }
 
-  async connect(device: DiscoveredDevice): Promise<void> {
+  connect(device: DiscoveredDevice): Promise<void> {
+    // Two native connect calls for the same device cancel one another. Lock
+    // before the first await, including while a scan or permission prompt ends.
+    if (this.connecting != null) return this.connecting;
+    const connecting = this.connectDevice(device).finally(() => {
+      if (this.connecting === connecting) this.connecting = null;
+    });
+    this.connecting = connecting;
+    return connecting;
+  }
+
+  private async connectDevice(device: DiscoveredDevice): Promise<void> {
+    const attempt = ++this.connectionAttempt;
     await this.stopScan();
     await this.teardownConnection();
+    if (!(await this.ensureReady())) return;
+    if (attempt !== this.connectionAttempt) return;
 
     this.descriptor = device;
     this.emit({ state: 'connecting', device, message: null });
 
+    let phase = 'Connecting to the device';
     try {
-      // A larger MTU lets the ESP32 send a whole packet in one notification
-      // instead of 20-byte fragments; it is a request, and the buffer copes
-      // either way.
+      // Use the default MTU. Requiring an MTU exchange during connect can
+      // prevent otherwise compatible peripherals from completing setup.
+      // PacketBuffer already reassembles readings from 20-byte fragments.
       const target = await this.manager.connectToDevice(device.id, {
-        timeout: 15_000,
-        requestMTU: 185,
+        timeout: 30_000,
       });
+      if (attempt !== this.connectionAttempt) {
+        await this.manager.cancelDeviceConnection(target.id);
+        return;
+      }
       this.device = target;
 
-      this.disconnectSubscription = this.manager.onDeviceDisconnected(device.id, () => {
-        this.packets.clear();
-        this.emit(DISCONNECTED);
+      this.disconnectSubscription = this.manager.onDeviceDisconnected(device.id, (error) => {
+        if (this.device !== target) return;
+        void this.teardownConnection();
+        this.emit(error
+          ? { state: 'error', device, message: connectionError('The device disconnected', error) }
+          : DISCONNECTED);
       });
 
+      phase = 'Discovering the sensor service';
       await target.discoverAllServicesAndCharacteristics();
+      if (this.device !== target) return;
       const characteristic = await this.findNotifyCharacteristic(target);
+      if (this.device !== target) return;
       if (characteristic == null) {
         await this.teardownConnection();
         this.emit({
           state: 'error',
           device,
-          message: 'No notify characteristic found on this device.',
+          message: 'This device has no sensor notification service. Connect to the machine using Bluetooth LE; Bluetooth Classic serial modules are not supported.',
         });
         return;
       }
@@ -249,8 +266,10 @@ export class BleSensorTransport implements SensorTransport {
       // Optional: a board with no writable characteristic still streams
       // readings, it just cannot be told to run its pumps.
       this.writeTarget = await this.findWriteCharacteristic(target, characteristic.serviceUUID);
+      if (this.device !== target) return;
 
       this.packets.clear();
+      phase = 'Subscribing to sensor readings';
       this.valueSubscription = this.manager.monitorCharacteristicForDevice(
         device.id,
         characteristic.serviceUUID,
@@ -259,15 +278,17 @@ export class BleSensorTransport implements SensorTransport {
           if (error) {
             // A monitor error after a disconnect is expected noise; a live
             // one means the link is unusable.
-            if (this.device != null) {
-              this.emit({ state: 'error', device, message: error.message });
+            if (this.device === target) {
+              void this.teardownConnection();
+              this.emit({ state: 'error', device, message: connectionError('Subscribing to sensor readings', error) });
             }
             return;
           }
-          if (value?.value) this.onBytes(base64ToBytes(value.value));
+          if (this.device === target && value?.value) this.onBytes(base64ToBytes(value.value));
         },
       );
 
+      if (this.device !== target) return;
       this.emit({
         state: 'connected',
         device,
@@ -275,11 +296,15 @@ export class BleSensorTransport implements SensorTransport {
         controllable: this.writeTarget != null,
       });
     } catch (error) {
-      this.emit({ state: 'error', device, message: describe(error) });
+      if (attempt !== this.connectionAttempt) return;
+      await this.teardownConnection();
+      this.emit({ state: 'error', device, message: connectionError(phase, error) });
     }
   }
 
   async disconnect(): Promise<void> {
+    this.connectionAttempt++;
+    await this.stopScan();
     await this.teardownConnection();
     this.emit(DISCONNECTED);
   }
@@ -320,6 +345,7 @@ export class BleSensorTransport implements SensorTransport {
   }
 
   async dispose(): Promise<void> {
+    this.connectionAttempt++;
     await this.stopScan();
     await this.teardownConnection();
     this.stateSubscription?.remove();
@@ -327,7 +353,42 @@ export class BleSensorTransport implements SensorTransport {
     this.statusEmitter.clear();
     this.readingEmitter.clear();
     this.deviceEmitter.clear();
-    this.manager.destroy();
+    await this.manager.destroy();
+  }
+
+  private async ensureReady(): Promise<boolean> {
+    try {
+      // Permission can change the reported adapter state. Read it only after
+      // the prompt, including when reconnecting to a previously found device.
+      if (!(await ensureBlePermissions())) {
+        this.emit({ state: 'unavailable', device: null, message: 'Bluetooth permission denied. Allow Nearby devices (or Location on Android 11 and older) in the app settings, then scan again.' });
+        return false;
+      }
+      let state = await this.manager.state();
+      if (state === State.Unknown || state === State.Resetting) {
+        state = await new Promise<State>((resolve) => {
+          let subscription: Subscription | null = null;
+          let settled = false;
+          const finish = (next: State) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            subscription?.remove();
+            resolve(next);
+          };
+          const timer = setTimeout(() => finish(State.Unknown), 5_000);
+          subscription = this.manager.onStateChange((next) => {
+            if (next !== State.Unknown && next !== State.Resetting) finish(next);
+          }, true);
+          if (settled) subscription.remove();
+        });
+      }
+      if (state === State.PoweredOn) return true;
+      this.emit({ state: 'unavailable', device: null, message: unavailableMessage(state) });
+    } catch (error) {
+      this.emit({ state: 'error', device: null, message: describe(error) });
+    }
+    return false;
   }
 
   private addDevice(scanned: Device): void {
@@ -409,15 +470,14 @@ export class BleSensorTransport implements SensorTransport {
   }
 
   private async teardownConnection(): Promise<void> {
+    const device = this.device;
+    this.device = null;
+    this.writeTarget = null;
     this.valueSubscription?.remove();
     this.valueSubscription = null;
     this.disconnectSubscription?.remove();
     this.disconnectSubscription = null;
     this.packets.clear();
-    this.writeTarget = null;
-
-    const device = this.device;
-    this.device = null;
     if (device != null) {
       try {
         await this.manager.cancelDeviceConnection(device.id);
@@ -436,4 +496,31 @@ export class BleSensorTransport implements SensorTransport {
 function describe(error: unknown): string {
   if (error instanceof Error) return error.message;
   return String(error);
+}
+
+function connectionError(phase: string, error: unknown): string {
+  const details = error != null && typeof error === 'object'
+    ? error as { errorCode?: number; androidErrorCode?: number; reason?: string }
+    : {};
+  const codes = [
+    details.errorCode != null ? `BLE ${details.errorCode}` : null,
+    details.androidErrorCode != null ? `Android ${details.androidErrorCode}` : null,
+  ].filter(Boolean);
+  const reason = details.reason ? ` ${details.reason}` : '';
+  const message = `${phase}: ${describe(error)}${codes.length ? ` (${codes.join(', ')})` : ''}.${reason}`;
+  console.warn(message);
+  return message;
+}
+
+function unavailableMessage(state: State): string {
+  switch (state) {
+    case State.Unsupported:
+      return 'This device has no Bluetooth LE radio.';
+    case State.Unauthorized:
+      return 'Bluetooth access is not allowed. Enable Bluetooth permission in the app settings, then scan again.';
+    case State.PoweredOff:
+      return 'Turn on Bluetooth to connect.';
+    default:
+      return 'Bluetooth is still starting. Wait a moment, then scan again.';
+  }
 }

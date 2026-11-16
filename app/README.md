@@ -279,6 +279,17 @@ npm run build:apk            # release APK, JS bundled in → dist/qualihive-rel
 npm run install:apk          # adb install to a phone with USB debugging on
 ```
 
+To build a release and prepare the download website in one command:
+
+```bash
+npm run update
+```
+
+This builds a fresh APK, copies it to `../site/qualihive-release.apk`, and updates
+the version shown in `../site/index.html` from `app.json`. Bump `expo.version`
+in `app.json` before running it for a new release. Commit and push the resulting
+site changes to publish on Render.
+
 Or copy `dist/qualihive-release.apk` to the phone and open it from Files
 (allow "install unknown apps" when asked). This build runs on its own and is
 the one to use for testing Bluetooth against the machine.

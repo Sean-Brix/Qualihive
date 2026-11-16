@@ -56,11 +56,12 @@ interface MonitoringState {
   switches: PumpSwitches;
   /** Status of the last action the UI triggered. */
   busy: boolean;
+  switchingTransport: boolean;
   error: string | null;
 
   /** Builds the transport for the current mode. Idempotent. */
   ensureTransport(): SensorTransport;
-  selectTransport(kind: TransportKind): void;
+  selectTransport(kind: TransportKind): Promise<void>;
   toggleRecording(): void;
   clearError(): void;
 
@@ -136,6 +137,7 @@ function buildTransport(kind: TransportKind): SensorTransport {
  * handful of providers, because everything here shares the transport.
  */
 export const useMonitoringStore = create<MonitoringState>((set, get) => {
+  let transportSelections: Promise<void> = Promise.resolve();
   const guarded = async (work: () => Promise<unknown>) => {
     set({ busy: true, error: null });
     try {
@@ -242,9 +244,11 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => {
     cycle: IDLE_CYCLE,
     switches: ALL_PUMPS_OFF,
     busy: false,
+    switchingTransport: false,
     error: null,
 
     ensureTransport: () => {
+      if (get().switchingTransport) throw new Error('Wait for the data source to finish switching.');
       const existing = get().transport;
       if (existing) return existing;
       const transport = buildTransport(get().transportKind);
@@ -258,30 +262,40 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => {
      * changes, so switching to the simulator tears down any BLE connection.
      */
     selectTransport: (kind) => {
-      if (kind === get().transportKind && get().transport) return;
-      const old = get().transport;
-      for (const unsubscribe of subscriptions) unsubscribe();
-      subscriptions = [];
+      const selecting = transportSelections.then(async () => {
+        if (kind === get().transportKind && get().transport) return;
+        set({ switchingTransport: true, error: null });
+        try {
+          const old = get().transport;
+          for (const unsubscribe of subscriptions) unsubscribe();
+          subscriptions = [];
 
-      // The pumps are told to stop over the old link before it goes. The
-      // sequencer cannot do it: by the time it sent, the store would hold the
-      // new transport.
-      let stopping: Promise<unknown> = Promise.resolve();
-      if (sequencer.isActive) {
-        sequencer.abandon('Stopped because the data source was switched.');
-        if (old) stopping = old.send({ type: 'pumpOff' }).catch(() => undefined);
-      }
-      if (old) void stopping.finally(() => old.dispose());
+          // ble-plx shares its native manager between instances. Await the
+          // previous destroy before constructing another, or it can destroy
+          // the new connection and report "Operation was cancelled".
+          if (sequencer.isActive) {
+            sequencer.abandon('Stopped because the data source was switched.');
+            if (old) await old.send({ type: 'pumpOff' }).catch(() => undefined);
+          }
+          set({ transport: null, status: DISCONNECTED, discovered: [], liveReading: null });
+          if (old) await old.dispose();
 
-      const transport = buildTransport(kind);
-      attach(transport);
-      set({
-        transportKind: kind,
-        transport,
-        status: transport.status,
-        discovered: transport.discovered,
-        liveReading: null,
+          const transport = buildTransport(kind);
+          attach(transport);
+          set({
+            transportKind: kind,
+            transport,
+            status: transport.status,
+            discovered: transport.discovered,
+          });
+        } finally {
+          set({ switchingTransport: false });
+        }
       });
+      transportSelections = selecting.catch((error) => {
+        set({ error: error instanceof Error ? error.message : String(error) });
+      });
+      return transportSelections;
     },
 
     toggleRecording: () => set((s) => ({ recording: !s.recording })),

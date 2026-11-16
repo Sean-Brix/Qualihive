@@ -188,7 +188,7 @@
             Download APK for Android
           </a>
           <div class="meta">
-            <span class="pill" id="version">v1.7.2</span>
+            <span class="pill" id="version">v1.7.3</span>
             <span id="size"></span>
             <span id="date"></span>
           </div>
@@ -260,7 +260,7 @@
   <script>
     (function () {
       // The APK is served next to this page (site/qualihive-release.apk).
-      // To ship a new build, replace that file and bump the version pill.
+      // Run npm run update from app/ to refresh the APK and version pill together.
       const repoUrl = 'https://github.com/Sean-Brix/Qualihive';
       const apkUrl = new URL('qualihive-release.apk', location.href).href;
       for (const id of ['nav-repo', 'foot-repo']) document.getElementById(id).href = repoUrl;

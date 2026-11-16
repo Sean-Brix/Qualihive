@@ -24,6 +24,13 @@ peripheral role (most USB BLE dongles do).
    from the app.
 4. The simulator shows "1 phone connected and listening".
 
+If the simulator says **No Bluetooth adapter found**, plug in the adapter,
+wait for Windows to recognize it, and click **Retry Bluetooth**. Startup retries
+briefly while Windows detects the adapter; startup errors also appear in the log.
+The status must say **Advertising** before the phone can find it.
+On Android 11 and older, enable Location on the phone and grant the app's
+Location permission as well as turning on Bluetooth.
+
 ## Send data
 
 - **Send once** / **Auto-send** — sends the values on screen.
@@ -32,3 +39,6 @@ peripheral role (most USB BLE dongles do).
 - Move a slider outside its accepted range (e.g. pH 4.5) to see warnings and
   failures.
 - **Raw JSON** — send any line you like, to test the parser.
+
+Enable **Auto-send** after connecting. The phone's machine indicator stays
+offline until a valid reading arrives, and goes offline again if readings stop.
